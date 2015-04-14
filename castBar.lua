@@ -88,11 +88,11 @@ function Frame:GetDefaults()
 		point = 'CENTER',
 		x = 0,
 		y = 30,
-		height = 3.2,
-		width = 30.0,
-		padding = 0,
-		showText = true,
-		inset = 0,
+		height = 1.6,
+		width = 20.0,
+		padding = 3,
+		hideText = false,
+		inset = 3,
 		color = {
 			r = 0,
 			g = 0,
@@ -101,13 +101,26 @@ function Frame:GetDefaults()
 		},
 		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
 		timeFormat = "Default",
-		alignText = "CENTER",
+		alignText = "LEFT",
 		alignTime = "RIGHT",
 		texture = "Interface\\TargetingFrame\\UI-StatusBar",
 	}
 end
 
+local Version = 2
+
 function Frame:Layout()
+	if (not self.sets.version) or (self.sets.version ~= Version) then
+		wipe(self.sets)
+		self.sets.version = Version
+	end
+
+	if self.sets.hideText then
+		self.cast.text:SetAlpha(0)
+	else
+		self.cast.text:SetAlpha(1)
+	end
+
 	self.sets = check(self:GetDefaults(), self.sets)
 	self:Resize()
 	self:Skin()
@@ -372,8 +385,12 @@ end
 
 
 --[[Texture Panel   I plan to do more with this.
-                    I want easy SharedMedia support.
-                   ~Goranaws
+                    I want easy SharedMedia support for:
+                       -fonts
+                       -borders
+                       -statusbars
+                       -backgrounds
+          ~Goranaws
 --]]
 local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 155, 20, 0
 
@@ -481,6 +498,8 @@ end
 local function AddTextPanel(menu)
 	local panel = menu:NewPanel("Text")
 	CheckButton(panel, "Disable Time", "hideTime")
+	CheckButton(panel, "Disable Text", "hideText")
+
 	NewMenu(panel, "Time Format", "timeFormat", {"Default", "Percent", "Fraction"})
 	NewMenu(panel, "Align Text", "alignText", {"LEFT", "CENTER", "RIGHT"})
 	NewMenu(panel, "Align Time", "alignTime", {"LEFT", "CENTER", "RIGHT"})
