@@ -1,335 +1,397 @@
-local DCB = Dominos:NewModule('CastingBar')
-local CastBar = Dominos:CreateClass('Frame', Dominos.Frame)
+--[[
+	CastBar, by Goranaws
+--]]
+
+local Addon = _G["Dominos"]
+local Frame = Addon:CreateClass('Frame', Addon.Frame)
 local L = LibStub('AceLocale-3.0'):GetLocale('Dominos-CastingBar')
 
--- Module Code
-function DCB:OnInitialize()
-	_G['CastingBarFrame'].ignoreFramePositionManager = true
+--[[ Bar ]]--
+function Frame:New()
+	return Frame.proto.New(self, 'cast')
 end
 
-function DCB:Load()
-	self.frame = CastBar:New()
-end
-
-function DCB:Unload()
-	self.frame:Free()
-end
-
--- Core Code
-function CastBar:New()
-	local frame = CastBar.proto.New(self, 'cast')
-
-	if not self.cast then
-		frame.header:SetParent(nil)
-		frame.header:ClearAllPoints()
-		frame:SetWidth(240)
-		frame:SetHeight(24)
+local function check(source, target)
+	--you may now add new defaults at will. ~Goranaws
+	if not target then 
+		target = {}
 	end
-
-	frame:CheckDefaults()
-	frame:Time()
-	frame:Layout()
-	frame:AdjustCastingBar()
-	frame:UpdateText()
-	frame:UpdateTexture()
-	frame:RegisterEvent("UNIT_SPELLCAST_START")
-	frame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
-	frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-
-	frame:SetScript("OnEvent", function(_, event)
-		frame.event = event
-	end)
-	
-	frame:HookScript("OnEvent", frame.ForceShow)
-
-	return frame
-end
-
-function CastBar:ForceShow()
-	local sets = self.sets.hidden
-	local f = CastingBarFrame
-
-	if ((sets and (sets == true)) or (not sets))
-	and((f:GetScript("OnEvent") ~= CastingBarFrame_OnEvent)
-	or (f:GetScript("OnShow") ~= CastingBarFrame_OnShow)
-	or (f:GetScript("OnUpdate") ~= CastingBarFrame_OnUpdate))
-	and(InCombatLockdown()~=true) then
-		f:SetAttribute("unit", "player")
-		f:SetScript("OnShow",  CastingBarFrame_OnShow)
-		f:SetScript("OnEvent", CastingBarFrame_OnEvent)
-		f:SetScript("OnUpdate", CastingBarFrame_OnUpdate)
-		f:Show()
-		if self.event then
-			f:GetScript("OnEvent")(f, self.event)
-			self.event = nil
+	for key, value in pairs(source) do
+		if type(value) == "table" then
+			target[key] =check(value, target[key])
+		else
+			if (type(value) == "boolean") then
+				if target[key] == nil then
+					target[key] = value
+				end
+ 			else
+ 				target[key] = target[key] or value
+ 			end
 		end
 	end
+	return target
 end
 
-function CastBar:GetDefaults()
+function Frame:Create(...)
+	local bar = Frame.proto.Create(self, ...)
+	
+	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar, "DominosCastingBarFrameTemplate")
+	bar.cast:SetPoint("Center")
+	bar.cast.unit = "player"
+	bar.cast:SetAttribute("unit", "player")
+	CastingBarFrame_SetLook(bar.cast, "UNITFRAME")
+	
+	bar.cast.text:SetAllPoints(bar.cast)
+	
+	bar.cast.time = bar.cast:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
+	bar.cast.time:SetTextColor(1.0,1.0,1.0)
+	bar.cast.time:SetAllPoints(bar.cast)
+
+	--background handler
+	bar.skin = CreateFrame("Frame", bar:GetName().."Skin", bar.cast)
+	bar.skin:SetFrameLevel(bar:GetFrameLevel()-1)
+
+	bar.cast:HookScript("OnUpdate", function()
+		local _, _, _, _, startTime, endTime = UnitCastingInfo("player")
+		if not startTime then
+			_, _, _, _, startTime, endTime = UnitChannelInfo("player")
+		end
+		if endTime and (endTime > 0) then
+			local style = bar.sets.timeFormat
+			if style == "Default" then
+				bar.cast.time:SetText(string.format("%.1f", (endTime / 1000) - GetTime()))
+			elseif style == "Percent" then
+				bar.cast.time:SetText(string.format("%.0f", ((GetTime() - (startTime / 1000)) / ((endTime- startTime)/1000))*100).."%")
+			elseif style == "Fraction" then
+				bar.cast.time:SetText(string.format("%.1f", GetTime() - (startTime / 1000) ).."/"..string.format("%.1f", (endTime- startTime)/1000))
+			end
+		end
+		bar.cast.icon:SetTexCoord(.15,.85,.15,.85)
+	end)
+
+	bar.cast.border:SetParent(MainMenuBarArtFrame)
+	bar.cast.borderShield:SetParent(MainMenuBarArtFrame)
+
+	bar.cast.barFlash:SetTexture("Interface\\Cooldown\\star4")
+	bar.cast.barFlash:SetVertexColor(0,1,0,1)
+	bar.cast.barFlash:SetBlendMode("ADD")
+	bar.cast.barFlash:SetAllPoints(bar.skin)
+	
+	bar:LoadSettings()
+	bar:Layout()
+
+	return bar
+end
+
+function Frame:GetDefaults()
 	return {
 		point = 'CENTER',
 		x = 0,
 		y = 30,
-		height = 8,
-		width = 28,
-		padding = 0,
-		showText = true,
-		SetBlizzBorder = 1,
-		texture = DEFAULT_STATUSBAR_TEXTURE,
+		height = 1.6,
+		width = 20.0,
+		padding = 3,
+		hideText = false,
+		inset = 3,
+		color = {
+			r = 0,
+			g = 0,
+			b = 0,
+			a = 1
+		},
+		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+		timeFormat = "Default",
+		alignText = "LEFT",
+		alignTime = "RIGHT",
+		texture = "Interface\\TargetingFrame\\UI-StatusBar",
 	}
 end
 
-function CastBar:CheckDefaults()
-	self.sets.texture = self.sets.texture or DEFAULT_STATUSBAR_TEXTURE
-	self.sets.width = self.sets.width or 28
-	self.sets.height = self.sets.height or 8
-	self.sets.padding = self.sets.padding or 0
-end
+local Version = 2
 
-function CastBar:Layout()
+function Frame:Layout()
+	if (not self.sets.version) or (self.sets.version ~= Version) then
+		wipe(self.sets)
+		self.sets.version = Version
+	end
 
-	local height = ((self.sets.height*10) * (100/256))
-	local width = ((self.sets.width * 10) * (206/256))
-
-	self:SetSize(((width + (self.sets.padding )*2) - 14) , ((height + (self.sets.padding)*2) - 8) )
-
-	if self.sets.border then
-		self.widthAdjust, self.heightAdjust  = self.sets.width * 10,  self.sets.height *4
-		self.time:SetJustifyH("LEFT")
-	elseif self.sets.SetBlizzBorder then
-		self.widthAdjust, self.heightAdjust  = self.sets.width * 10, self.sets.height * 10
-		self.time:SetJustifyH("LEFT")
+	if self.sets.hideText then
+		self.cast.text:SetAlpha(0)
 	else
-		self.widthAdjust, self.heightAdjust  = self.sets.width * 9.85, self.sets.height * 9
-		self.time:SetJustifyH("RIGHT")
+		self.cast.text:SetAlpha(1)
 	end
 
-
-	CastingBarFrameBorderShield:SetSize(self.widthAdjust, self.heightAdjust)
-	CastingBarFrame:SetSize( (self.sets.width * 10) * (47/64), (self.sets.height * 10) * (11/64))
-
-	self:Configuration()
+	self.sets = check(self:GetDefaults(), self.sets)
+	self:Resize()
+	self:Skin()
+	self:ToggleTime()
+	
+	self.cast.text:SetJustifyH(self.sets.alignText)
+	self.cast.time:SetJustifyH(self.sets.alignTime)
+	self:UpdateTexture()
 end
 
-function CastBar:AdjustCastingBar()
-	CastingBarFrameBorder:ClearAllPoints()
-	CastingBarFrameBorder:SetAllPoints(CastingBarFrameBorderShield)
+function Frame:Resize()
+	local pw, ph = self:GetPadding()
+	local w, h = self.sets.width, self.sets.height
+	self:SetSize((w * 10) + (pw), (h * 10) + (ph))
 
-	CastingBarFrameFlash:ClearAllPoints()
-	CastingBarFrameFlash:SetAllPoints(CastingBarFrameBorderShield)
+	local offset = -19
 
-	CastingBarFrameText:ClearAllPoints()
-	CastingBarFrameText:SetAllPoints(CastingBarFrameBorderShield)
-
-	CastingBarFrameBorderShield:ClearAllPoints()
-	CastingBarFrameBorderShield:SetPoint("CENTER", self)
-
-
-	CastingBarFrame:ClearAllPoints()
-  	CastingBarFrame:SetParent(self)
-	CastingBarFrame:SetPoint("CENTER", CastingBarFrameBorderShield)
-end
-
-function CastBar:Time()
-	if not self.time then
-		local time = CastingBarFrame:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
-		time:SetTextColor(1.0,1.0,1.0)
-		time:SetPoint("RIGHT", CastingBarFrame, 0, 0)
-		time:SetSize(30, 30)
-		time:SetJustifyH("LEFT")
-		self.time = time
+	if self.sets.showIcon then
+		offset = 0
 	end
 
+	self.cast.icon:ClearAllPoints()
 
-
---[[ this script forces the cast bar to stay where we want it, And controls the time text.]]--
-	self:SetScript("OnUpdate", function( self, elapsed)
-		CastingBarFrame:ClearAllPoints()
-  		CastingBarFrame:SetParent(self)
-		CastingBarFrame:SetPoint("CENTER", CastingBarFrameBorderShield)
-		if self.sets.showText then
-			self.stop = select(6, UnitCastingInfo("player")) or select(6, UnitChannelInfo("player"))
-			if self.stop then
-				self.time:SetFormattedText("%.1f", (self.stop / 1000) - GetTime())
-			else
-				self.time:SetText("")
-			end
-		else
-			self.time:SetText("")
-		end
-		if Dominos.locked == false then
-			self.border:Show()
-		else
-			self.border:Hide()
-		end
-	end)
-end
-
-local function CreateWidthSlider(p)
-	local s = p:NewSlider(L.Width, 10, 100, 1)
-	s.OnShow = function(self)
-		self:SetValue(ceil(self:GetParent().owner.sets.width))
-	end
-	s.UpdateValue = function(self, value)
-		local f = self:GetParent().owner
-		f.sets.width = value
-		f:Layout()
-	end
-end
-
-local function CreateHeightSlider(p)
-	local s = p:NewSlider(L.Height, 5, 45, 1, OnShow)
-	s.OnShow = function(self)
-		self:SetValue(self:GetParent().owner.sets.height)
-	end
-	s.UpdateValue = function(self, value)
-		local f = self:GetParent().owner
-		f.sets.height = value
-		f:Layout()
-	end
-end
-
-local function CreatePaddingSlider(p)
-	local s = p:NewSlider(L.Padding, -3, 32, 1, OnShow)
-	s.OnShow = function(self)
-		self:SetValue(self:GetParent().owner.sets.padding)
-	end
-	s.UpdateValue = function(self, value)
-		local f = self:GetParent().owner
-		f.sets.padding = value
-		f:Layout()
-	end
-end
-
-function CastBar:Configuration()
-	if not self.border then
-		--This texture allows the user to modify
-		--the cast bar and see what it will look
-		--like without having to cast a spell
-		local border = self:CreateTexture(nil, 'BACKGROUND')
-		border:SetAllPoints(CastingBarFrameBorder)
-		border:SetTexture(CastingBarFrameBorder:GetTexture())
-		border:SetBlendMode("BLEND")
-		border:Hide()
-		self.border = border
-	end
-
-	local FACTION = UnitFactionGroup("player")
-	local texture
-	local flash
-
-	if self.sets.border then
-		texture = "Interface\\UnitPowerBarAlt\\".. FACTION .."_Horizontal_Frame"
-		flash = texture
-
-	elseif self.sets.SetBlizzBorder then
-		texture = "Interface\\CastingBar\\UI-CastingBar-Border"
-		flash = "Interface\\CastingBar\\UI-CastingBar-Flash"
+	if  self.sets.isRightToLeft then
+		self.cast.icon:SetPoint("Left", self.cast, "Right", 3, 0)
+		self.cast:SetPoint("Left", self, "Center",  -(((w*10)/2)), 0)
+		self.cast:SetPoint("Right", self, "Center", (((w*10)/2) + offset),0)
 	else
-		texture = "Interface\\CastingBar\\UI-CastingBar-Border-Small"
-		flash = "Interface\\CastingBar\\UI-CastingBar-Flash-Small"
-
+		self.cast.icon:SetPoint("Right", self.cast, "Left", -3, 0)
+		self.cast:SetPoint("Left", self, "Center",  -(((w*10)/2) + offset), 0)
+		self.cast:SetPoint("Right", self, "Center", (((w*10)/2)),0)
 	end
+	
+	self.skin:SetPoint("Left", self, "Center",  -(w*5), 0)
+	self.skin:SetPoint("Right", self, "Center", w*5,0)
+	self.skin:SetHeight(h * 10)
+	self.cast:SetHeight(h * 10)
+end
 
-	CastingBarFrameBorder:SetTexture(texture)
-	CastingBarFrameFlash:SetTexture(flash)
-	self.border:SetTexture(CastingBarFrameBorder:GetTexture())
+function Frame:Skin()
+	self.skin:SetBackdrop({
+		bgFile = self.sets.bgFile,
+		insets = {left = -self.sets.inset, right = -self.sets.inset, top = -self.sets.inset, bottom = -self.sets.inset},
+		tile = false,
+	})
+	self.skin:SetBackdropColor(self.sets.color.r, self.sets.color.g, self.sets.color.b, self.sets.color.a)
+end
 
-	if self.sets.border then
-		CastingBarFrameFlash:SetVertexColor(0, 0, 1)
-		CastingBarFrameFlash:SetDesaturated(1)
-		CastingBarFrameFlash:SetBlendMode("BLEND")
+function Frame:ToggleTime()
+	if self.sets.hideTime then
+		self.cast.time:Hide()
 	else
-		CastingBarFrameFlash:SetVertexColor(1, 1, 1)
-		CastingBarFrameFlash:SetDesaturated(nil)
-		CastingBarFrameFlash:SetBlendMode("ADD")
+		self.cast.time:Show()
 	end
 end
 
-function CastBar:ToggleSetBlizzBorder(enable)
-	self.sets.SetBlizzBorder = enable or nil
-	self.sets.border = nil
-	self:Layout()
+function Frame:SetLeftToRight(isLeftToRight)
+    local isRightToLeft = not isLeftToRight
+    self.sets.isRightToLeft = isRightToLeft and true or nil
+    self:Layout()
 end
 
-function CastBar:ToggleBorder(enable)
-	self.sets.border = enable or nil
-	self.sets.SetBlizzBorder = nil
-	self:Layout()
+function Frame:GetLeftToRight()
+    return not self.sets.isRightToLeft
 end
 
-function CastBar:ToggleText(enable)
-	self.sets.showText = enable or nil
-	self:UpdateText()
-end
-
-function CastBar:UpdateText()
-	if self.sets.showText then
-		self.time:Show()
-	else
-		self.time:Hide()
-	end
-end
---[[ Menu Code ]]--
-
-local function AddLayoutPanel(menu)
-	local p = menu:NewPanel(LibStub('AceLocale-3.0'):GetLocale('Dominos-Config').Layout)
-	p:NewOpacitySlider()
-	p:NewFadeSlider()
-	CreateWidthSlider(p)
-	CreateHeightSlider(p)
-	p:NewScaleSlider()
-	CreatePaddingSlider(p)
-
-
-	local time = p:NewCheckButton(L.ShowTime)
-	time:SetScript('OnClick', function(self) self:GetParent().owner:ToggleText(self:GetChecked()) end)
-	time:SetScript('OnShow', function(self) self:SetChecked(self:GetParent().owner.sets.showText) end)
-
-	local faction = p:NewCheckButton("Faction Border") --Needs Translation
-	local thin = p:NewCheckButton("Blizzard Border") --Needs Translation
-
-	faction:SetScript('OnClick', function(self)
-		thin:SetChecked(nil)
-		self:GetParent().owner:ToggleBorder(self:GetChecked())
-	end)
-	faction:SetScript('OnShow', function(self) self:SetChecked(self:GetParent().owner.sets.border) end)
-
-	thin:SetScript('OnClick', function(self)
-		faction:SetChecked(nil)
- 		self:GetParent().owner:ToggleSetBlizzBorder(self:GetChecked())
- 	end)
-	thin:SetScript('OnShow', function(self) self:SetChecked(self:GetParent().owner.sets.SetBlizzBorder)  end)
-end
-
-local function AddAdvancedLayout(self)
-	self:AddAdvancedPanel()
-end
-
---[[
-	Texture Picker
-	Derived from the code in Dominos XP, and modified
-	slightly to work under any Dominos based addon.
-	Aslo corrected the uncapitalized constants.
---]]
-
-function CastBar:UpdateTexture()
+function Frame:UpdateTexture()
 	local LSM = LibStub('LibSharedMedia-3.0', true)
-
 	local texture = (LSM and LSM:Fetch('statusbar', self.sets.texture)) or DEFAULT_STATUSBAR_TEXTURE
-	CastingBarFrame:SetStatusBarTexture(texture)
-
-	if CastingBarFrame:GetStatusBarTexture().SetHorizTile then
-		CastingBarFrame:GetStatusBarTexture():SetHorizTile(false)
-	end
+	self.cast:SetStatusBarTexture(texture)
 end
 
-function CastBar:SetTexture(texture)
+function Frame:SetTexture(texture)
 	self.sets.texture = texture
 	self:UpdateTexture()
 end
 
+--[[ Menu Code ]]--
+function NewWidthSlider(menu)
+	return menu:NewSlider("Width", 16, 600, 1,
+		function(self)
+			local width = menu.owner.sets.width
+			self:SetValue(width*10)
+		end, 
+		function(self, value)
+			menu.owner.sets.width = value/10
+			menu.owner:Layout()
+		end
+	)
+end
+
+function NewHeightSlider(menu)
+	return menu:NewSlider("Height", 16, 100, 1,
+		function(self)
+			local height = menu.owner.sets.height
+			self:SetValue(height*10)
+		end, 
+		function(self, value)
+			menu.owner.sets.height= value/10
+			menu.owner:Layout()
+		end
+	)
+end
+
+function NewInsetSlider(menu)
+	return menu:NewSlider("Inset", -30, 100, 1,
+		function(self)
+			self:SetValue(menu.owner.sets.inset)
+		end, 
+		function(self, value)
+			menu.owner.sets.inset= value
+			menu.owner:Layout()
+		end
+	)
+end
+
+local function ShowColorPicker(r, g, b, a, changedCallback)
+	ColorPickerFrame.hasOpacity, ColorPickerFrame.opacity = nil, nil
+	ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = nil, nil, nil
+	ColorPickerFrame:SetColorRGB(r,g,b)
+	ColorPickerFrame.hasOpacity, ColorPickerFrame.opacity = (a ~= nil), a
+	ColorPickerFrame.previousValues = {r,g,b,a}
+	ColorPickerFrame.func, ColorPickerFrame.opacityFunc, ColorPickerFrame.cancelFunc = changedCallback, changedCallback, changedCallback
+	ColorPickerFrame:Hide() -- Need to run the OnShow handler.
+	ColorPickerFrame:Show()
+end
+
+local function NewColorPicker(menu, name, key)
+	local button = CreateFrame("Button", menu:GetName()..name, menu)
+	button:SetSize(24, 24)
+	local text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	text:SetText(name)
+	text:SetPoint("Left", button, "Right", 5, 0)
+	button:SetPushedTexture("Interface\\Buttons\\UI-Quickslot-Depress")
+	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+	button:GetHighlightTexture():SetBlendMode("ADD")
+	button:SetNormalTexture('Interface\\Tooltips\\UI-Tooltip-Background')
+
+	local border = button:CreateTexture(nil, "OVERLAY")
+	border:SetAllPoints(button)
+	border:SetTexture("Interface\\BUTTONS\\UI-Quickslot2")
+	border:SetTexCoord(.2,.8,.2,.8)
+
+	button:SetScript("OnShow", function(self)
+		local saved = self:GetParent().owner.sets[key]
+		button:GetNormalTexture():SetVertexColor(saved.r, saved.g, saved.b, saved.a)
+	end)
+
+	button:SetScript("OnClick", function(self)
+		local saved = self:GetParent().owner.sets[key]
+		local r, g, b, a = saved.r, saved.g, saved.b, saved.a
+		ShowColorPicker(r, g, b, a, function(restore)
+			local newR, newG, newB, newA
+			if restore then
+				newR, newG, newB, newA = unpack(restore)
+			else
+				newA, newR, newG, newB = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB()
+			end
+			saved.r, saved.g, saved.b, saved.a = newR, newG, newB, newA
+			self:GetScript("OnShow")(self)
+			menu.owner:Layout()
+		end)
+	end)
+
+	local prev = menu.checkbutton
+	if prev then
+		button:SetPoint('TopLeft',  prev, 'BottomLeft', 0, -2)
+	else
+		button:SetPoint('TOPLEFT', 2, 0)
+	end
+	menu.checkbutton = button
+	menu.height = menu.height + 24
+
+	return button
+end
+
+local function CheckButton(panel, name, key)
+	local c = panel:NewCheckButton(name)
+	c:SetScript("OnShow",
+		function(self)
+			self:SetChecked(self:GetParent().owner.sets[key])
+		end
+	)
+	c:SetScript("OnClick",
+		function(self)
+			local owner = self:GetParent().owner
+			owner.sets[key] = self:GetChecked() or false
+			owner:Layout()
+		end
+	)
+	return c
+end
+
+local function NewMenu(menu, name, key, table)
+	local s
+	local f = CreateFrame("Frame", menu:GetName()..name, menu)
+	f:SetSize(24, 24)
+	f.button = CreateFrame("Button", f:GetName().."Button", f)
+	f.button:SetPoint("Top")
+	f.button:SetSize(24, 24)
+	f.button:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+	f.button:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
+	f.button:SetDisabledTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Disabled")
+	f.button:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
+
+	f.text = f:CreateFontString(f:GetName() .. 'Text', "OVERLAY", "GameFontHighlightSmall")
+	f.text:SetPoint("BottomLeft", f.button, "BottomRight", 6, 2)
+	f.text:SetJustifyH('LEFT')
+
+	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	title:SetPoint("TopLeft", f.button, "TopRight", 4, -2)
+	title:SetText(name)	
+
+	f:SetScript('OnShow', function(self)
+		if self ~= f then
+			return
+		end
+		f:initialize()
+		f.text:SetText(f:GetParent().owner.sets[key])
+	end)
+
+	f:SetScript("OnHide", function() CloseDropDownMenus() end)
+
+	f.button:SetScript("OnClick", function(self)
+		ToggleDropDownMenu(1, nil, f, "cursor")
+		PlaySound("igMainMenuOptionCheckBoxOn")
+	end)
+
+	function f:initialize()
+		local owner = f:GetParent().owner
+		local info = UIDropDownMenu_CreateInfo()
+		for i, anchor in ipairs(table) do
+			wipe(info)
+			info.text = anchor
+			info.func = function(item, name)
+				owner.sets[key] = name
+				owner:Layout()
+				f.text:SetText(name)
+			end
+			info.checked = (anchor == owner.sets[key])
+			info.arg1 = anchor
+			UIDropDownMenu_AddButton(info)
+		end
+	end
+	
+	local dropDownList = _G["DropDownList"..1]
+	dropDownList.dropdown = f
+	dropDownList.shouldRefresh = true
+	
+	local prev = menu.checkbutton
+	if prev then
+		f:SetPoint('TOP', prev, 'BOTTOM', 0, -0)
+	else
+		f:SetPoint('TOPLEFT', 2, -5)
+	end
+	f.point = {f:GetPoint()}
+	menu.checkbutton = f.button
+
+	menu.height = menu.height + 24
+	return f
+end
+
+
+--[[Texture Panel   I plan to do more with this.
+                    I want easy SharedMedia support for:
+                       -fonts
+                       -borders
+                       -statusbars
+                       -backgrounds
+          ~Goranaws
+--]]
 local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 155, 20, 0
 
 local function TextureButton_OnClick(self)
@@ -413,9 +475,70 @@ local function AddTexturePanel(menu)
 	p.height = 5 + (NUM_ITEMS * HEIGHT)
 end
 
-function CastBar:CreateMenu()
-	local menu = Dominos:NewMenu(self.id)
-	AddLayoutPanel(menu)
-	AddTexturePanel(menu)
-	self.menu = menu
+local function AddLayoutPanel(menu)
+	local panel = menu:NewPanel(LibStub('AceLocale-3.0'):GetLocale('Dominos-Config').Layout)
+	panel:NewOpacitySlider()
+	panel:NewFadeSlider()
+	panel:NewPaddingSlider()
+	panel:NewScaleSlider()
+	NewHeightSlider(panel)
+	NewWidthSlider(panel)
+	return panel
+end
+
+local function AddBGPanel(menu)
+	local panel = menu:NewPanel("Background")
+	
+	NewInsetSlider(panel)
+	NewColorPicker(panel, "Color", "color")
+
+	return panel
+end
+
+local function AddTextPanel(menu)
+	local panel = menu:NewPanel("Text")
+	CheckButton(panel, "Disable Time", "hideTime")
+	CheckButton(panel, "Disable Text", "hideText")
+
+	NewMenu(panel, "Time Format", "timeFormat", {"Default", "Percent", "Fraction"})
+	NewMenu(panel, "Align Text", "alignText", {"LEFT", "CENTER", "RIGHT"})
+	NewMenu(panel, "Align Time", "alignTime", {"LEFT", "CENTER", "RIGHT"})
+
+	return panel
+end
+
+local function AddAdvancedPanel(menu)
+	local panel = menu:NewPanel("Advanced")
+
+	panel:NewLeftToRightCheckbox()
+	
+	return panel
+end
+
+function Frame:CreateMenu()
+	local menu = Addon:NewMenu(self.id)
+	if menu then
+		AddLayoutPanel(menu)
+		AddBGPanel(menu)
+		AddTexturePanel(menu)
+		AddTextPanel(menu)
+	 	AddAdvancedPanel(menu)
+		self.menu = menu
+	end
+	return menu
+end
+
+
+--[[ module ]]--
+local Controller = Addon:NewModule('Cast')
+
+function Controller:Load()
+	self.frame = Frame:New()
+end
+
+function Controller:Unload()
+	if self.frame then
+		self.frame:Free()
+		self.frame = nil
+	end
 end
