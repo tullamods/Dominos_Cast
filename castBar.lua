@@ -597,11 +597,8 @@ end
 
 local function NewMediaButton(panel, name, mediaType, get, set)
 	local b = CreateFrame("CheckButton", panel:GetName()..name.."MediaButton", panel, "UIMenuButtonStretchTemplate")
-	b:SetScript("OnMouseDown", function()
+	b:SetScript("OnClick", function()
 		DisplayMedia(b, panel, mediaType, get, set)
-	end)
-	b:SetScript("OnMouseUp", function()
-		b:GetScript("OnShow")()
 	end)
 	
 	b.texture = CreateFrame('Button', b:GetName().."Display", b)
