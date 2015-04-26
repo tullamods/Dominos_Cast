@@ -2,9 +2,9 @@
 ## Title: Dominos Cast
 ## Title-zhCN: |cFF0099FF[Dominos]|r 施法条模块
 ## Notes: A movable casting bar, with timer
-## Author: Tuller, Goranaws
+## Author: Tuller
 ## Dependencies: Dominos
-## Version: 2
+mediaPanel.lua
 embeds.xml
 localization.xml
 castBar.lua
