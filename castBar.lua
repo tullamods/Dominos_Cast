@@ -104,7 +104,7 @@ function Frame:GetDefaults()
 	}
 end
 
-local Version, checkSettings, requiresReset = 2.2, true, false
+local Version, checkSettings, requiresReset = 2.3, true, false
 
 function Frame:CheckVersion()
 	if ((not self.sets.version) or (self.sets.version ~= Version))then
