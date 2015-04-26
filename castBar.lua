@@ -5,6 +5,7 @@
 local Addon = _G["Dominos"]
 local Frame = Addon:CreateClass('Frame', Addon.Frame)
 local L = LibStub('AceLocale-3.0'):GetLocale('Dominos-CastingBar')
+local SML = LibStub('LibSharedMedia-3.0')
 
 --[[ Bar ]]--
 function Frame:New()
@@ -34,23 +35,21 @@ end
 
 function Frame:Create(...)
 	local bar = Frame.proto.Create(self, ...)
-	
-	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar, "DominosCastingBarFrameTemplate")
+	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar, "CastingBarFrameTemplate")
 	bar.cast:SetPoint("Center")
 	bar.cast.unit = "player"
 	bar.cast:SetAttribute("unit", "player")
 	CastingBarFrame_SetLook(bar.cast, "UNITFRAME")
-	
 	bar.cast.text:SetAllPoints(bar.cast)
-	
 	bar.cast.time = bar.cast:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
 	bar.cast.time:SetTextColor(1.0,1.0,1.0)
 	bar.cast.time:SetAllPoints(bar.cast)
-
 	--background handler
+		--now doubles as an anchor
+		--for the castBar and Icon.
 	bar.skin = CreateFrame("Frame", bar:GetName().."Skin", bar.cast)
 	bar.skin:SetFrameLevel(bar:GetFrameLevel()-1)
-
+	bar.skin:SetPoint("Center", bar)
 	bar.cast:HookScript("OnUpdate", function()
 		local _, _, _, _, startTime, endTime = UnitCastingInfo("player")
 		if not startTime then
@@ -68,18 +67,14 @@ function Frame:Create(...)
 		end
 		bar.cast.icon:SetTexCoord(.15,.85,.15,.85)
 	end)
-
 	bar.cast.border:SetParent(MainMenuBarArtFrame)
 	bar.cast.borderShield:SetParent(MainMenuBarArtFrame)
-
 	bar.cast.barFlash:SetTexture("Interface\\Cooldown\\star4")
 	bar.cast.barFlash:SetVertexColor(0,1,0,1)
 	bar.cast.barFlash:SetBlendMode("ADD")
 	bar.cast.barFlash:SetAllPoints(bar.skin)
-	
 	bar:LoadSettings()
 	bar:Layout()
-
 	return bar
 end
 
@@ -92,6 +87,7 @@ function Frame:GetDefaults()
 		width = 20.0,
 		padding = 3,
 		hideText = false,
+		showIcon = true,
 		inset = 3,
 		color = {
 			r = 0,
@@ -104,60 +100,75 @@ function Frame:GetDefaults()
 		alignText = "LEFT",
 		alignTime = "RIGHT",
 		texture = "Interface\\TargetingFrame\\UI-StatusBar",
+		font = "Arial Narrow",
 	}
 end
 
-local Version = 2
+local Version, checkSettings, requiresReset = 2.3, true, false
+
+function Frame:CheckVersion()
+	if ((not self.sets.version) or (self.sets.version ~= Version))then
+		if requiresReset then
+			wipe(self.sets)
+		end
+		self.sets.version = Version
+		if checkSettings then
+			self.sets = check(self:GetDefaults(), self.sets)
+		end
+		self.verified = true
+	end
+end
 
 function Frame:Layout()
-	if (not self.sets.version) or (self.sets.version ~= Version) then
-		wipe(self.sets)
-		self.sets.version = Version
-	end
+	self:CheckVersion()
 
 	if self.sets.hideText then
 		self.cast.text:SetAlpha(0)
 	else
 		self.cast.text:SetAlpha(1)
 	end
-
-	self.sets = check(self:GetDefaults(), self.sets)
+	self:ToggleIcon()
 	self:Resize()
 	self:Skin()
 	self:ToggleTime()
-	
 	self.cast.text:SetJustifyH(self.sets.alignText)
 	self.cast.time:SetJustifyH(self.sets.alignTime)
-	self:UpdateTexture()
+	self:ApplyTexture()
+	local SML = LibStub('LibSharedMedia-3.0', true)
+	self.cast.text:SetFont(SML:Fetch('font', self.sets.font), 12)
+	self.cast.time:SetFont(SML:Fetch('font', self.sets.font), 12)
 end
 
 function Frame:Resize()
 	local pw, ph = self:GetPadding()
 	local w, h = self.sets.width, self.sets.height
-	self:SetSize((w * 10) + (pw), (h * 10) + (ph))
-
-	local offset = -19
-
+	self:SetSize(w + pw, h + ph)
+	self.skin:SetSize(w, h)
+	local offset = 0
 	if self.sets.showIcon then
-		offset = 0
+		offset = 19
 	end
+	self.cast:SetSize(w-offset, h)
+	local point = "Right"
+	if self.sets.isRightToLeft then 
+		point = "Left"
+	end
+	self.cast:ClearAllPoints()
+	self.cast:SetPoint(point, self.skin)
+end
 
-	self.cast.icon:ClearAllPoints()
-
-	if  self.sets.isRightToLeft then
-		self.cast.icon:SetPoint("Left", self.cast, "Right", 3, 0)
-		self.cast:SetPoint("Left", self, "Center",  -(((w*10)/2)), 0)
-		self.cast:SetPoint("Right", self, "Center", (((w*10)/2) + offset),0)
+function Frame:ToggleIcon()
+	if self.sets.showIcon then
+		self.cast.icon:Show()
+		local point = "Left"
+		if self.sets.isRightToLeft then 
+			point = "Right"
+		end
+		self.cast.icon:ClearAllPoints()
+		self.cast.icon:SetPoint(point, self.skin)
 	else
-		self.cast.icon:SetPoint("Right", self.cast, "Left", -3, 0)
-		self.cast:SetPoint("Left", self, "Center",  -(((w*10)/2) + offset), 0)
-		self.cast:SetPoint("Right", self, "Center", (((w*10)/2)),0)
+		self.cast.icon:Hide()
 	end
-	
-	self.skin:SetPoint("Left", self, "Center",  -(w*5), 0)
-	self.skin:SetPoint("Right", self, "Center", w*5,0)
-	self.skin:SetHeight(h * 10)
-	self.cast:SetHeight(h * 10)
 end
 
 function Frame:Skin()
@@ -187,15 +198,36 @@ function Frame:GetLeftToRight()
     return not self.sets.isRightToLeft
 end
 
-function Frame:UpdateTexture()
-	local LSM = LibStub('LibSharedMedia-3.0', true)
-	local texture = (LSM and LSM:Fetch('statusbar', self.sets.texture)) or DEFAULT_STATUSBAR_TEXTURE
+function Frame:ApplyTexture()
+	local texture = (SML and SML:Fetch('statusbar', self.sets.texture)) or DEFAULT_STATUSBAR_TEXTURE
 	self.cast:SetStatusBarTexture(texture)
 end
 
 function Frame:SetTexture(texture)
 	self.sets.texture = texture
-	self:UpdateTexture()
+	self:ApplyTexture()
+end
+
+function Frame:GetBarTexture()
+	return self.sets.texture
+end
+
+function Frame:SetBackground(texture)
+	self.sets.bgFile = texture
+	self:Skin()
+end
+
+function Frame:GetBackground()
+	return self.sets.bgFile
+end
+
+function Frame:GetFont()
+	return self.sets.font
+end
+
+function Frame:SetFont(font)
+	self.sets.font = font
+	self:Layout()
 end
 
 --[[ Menu Code ]]--
@@ -203,23 +235,23 @@ function NewWidthSlider(menu)
 	return menu:NewSlider("Width", 16, 600, 1,
 		function(self)
 			local width = menu.owner.sets.width
-			self:SetValue(width*10)
+			self:SetValue(width)
 		end, 
 		function(self, value)
-			menu.owner.sets.width = value/10
+			menu.owner.sets.width = value
 			menu.owner:Layout()
 		end
 	)
 end
 
 function NewHeightSlider(menu)
-	return menu:NewSlider("Height", 16, 100, 1,
+	return menu:NewSlider("Height", 5, 100, 1,
 		function(self)
 			local height = menu.owner.sets.height
-			self:SetValue(height*10)
+			self:SetValue(height)
 		end, 
 		function(self, value)
-			menu.owner.sets.height= value/10
+			menu.owner.sets.height= value
 			menu.owner:Layout()
 		end
 	)
@@ -258,17 +290,14 @@ local function NewColorPicker(menu, name, key)
 	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
 	button:GetHighlightTexture():SetBlendMode("ADD")
 	button:SetNormalTexture('Interface\\Tooltips\\UI-Tooltip-Background')
-
 	local border = button:CreateTexture(nil, "OVERLAY")
 	border:SetAllPoints(button)
 	border:SetTexture("Interface\\BUTTONS\\UI-Quickslot2")
 	border:SetTexCoord(.2,.8,.2,.8)
-
 	button:SetScript("OnShow", function(self)
 		local saved = self:GetParent().owner.sets[key]
 		button:GetNormalTexture():SetVertexColor(saved.r, saved.g, saved.b, saved.a)
 	end)
-
 	button:SetScript("OnClick", function(self)
 		local saved = self:GetParent().owner.sets[key]
 		local r, g, b, a = saved.r, saved.g, saved.b, saved.a
@@ -284,7 +313,6 @@ local function NewColorPicker(menu, name, key)
 			menu.owner:Layout()
 		end)
 	end)
-
 	local prev = menu.checkbutton
 	if prev then
 		button:SetPoint('TopLeft',  prev, 'BottomLeft', 0, -2)
@@ -293,7 +321,6 @@ local function NewColorPicker(menu, name, key)
 	end
 	menu.checkbutton = button
 	menu.height = menu.height + 24
-
 	return button
 end
 
@@ -315,7 +342,6 @@ local function CheckButton(panel, name, key)
 end
 
 local function NewMenu(menu, name, key, table)
-	local s
 	local f = CreateFrame("Frame", menu:GetName()..name, menu)
 	f:SetSize(24, 24)
 	f.button = CreateFrame("Button", f:GetName().."Button", f)
@@ -325,30 +351,29 @@ local function NewMenu(menu, name, key, table)
 	f.button:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
 	f.button:SetDisabledTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Disabled")
 	f.button:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight")
-
 	f.text = f:CreateFontString(f:GetName() .. 'Text', "OVERLAY", "GameFontHighlightSmall")
 	f.text:SetPoint("BottomLeft", f.button, "BottomRight", 6, 2)
 	f.text:SetJustifyH('LEFT')
-
 	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	title:SetPoint("TopLeft", f.button, "TopRight", 4, -2)
 	title:SetText(name)	
-
 	f:SetScript('OnShow', function(self)
 		if self ~= f then
 			return
 		end
 		f:initialize()
 		f.text:SetText(f:GetParent().owner.sets[key])
+		if not self.stretch then
+			self.stretch = 1
+			f.button:SetHitRectInsets(0, -(title:GetCenter()+ (title:GetWidth()/2)- f.button:GetCenter()+ (f.button:GetWidth()/2)), 0, 0)
+		end
 	end)
-
 	f:SetScript("OnHide", function() CloseDropDownMenus() end)
-
 	f.button:SetScript("OnClick", function(self)
-		ToggleDropDownMenu(1, nil, f, "cursor")
+		UIDropDownMenu_SetAnchor(f, -4, 6, "TopLeft", f.button, "BottomLeft")
+		ToggleDropDownMenu(1, nil, f)
 		PlaySound("igMainMenuOptionCheckBoxOn")
 	end)
-
 	function f:initialize()
 		local owner = f:GetParent().owner
 		local info = UIDropDownMenu_CreateInfo()
@@ -365,7 +390,6 @@ local function NewMenu(menu, name, key, table)
 			UIDropDownMenu_AddButton(info)
 		end
 	end
-	
 	local dropDownList = _G["DropDownList"..1]
 	dropDownList.dropdown = f
 	dropDownList.shouldRefresh = true
@@ -378,101 +402,16 @@ local function NewMenu(menu, name, key, table)
 	end
 	f.point = {f:GetPoint()}
 	menu.checkbutton = f.button
-
+	f.button:SetHitRectInsets(0, 0 , 0, 0)
 	menu.height = menu.height + 24
 	return f
 end
 
-
---[[Texture Panel   I plan to do more with this.
-                    I want easy SharedMedia support for:
-                       -fonts
-                       -borders
-                       -statusbars
-                       -backgrounds
-          ~Goranaws
---]]
-local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 155, 20, 0
-
-local function TextureButton_OnClick(self)
-	self:GetParent().owner:SetTexture(self:GetText())
-	self:GetParent():UpdateList()
-end
-
-local function TextureButton_OnMouseWheel(self, direction)
-	local scrollBar = _G[self:GetParent().scroll:GetName() .. 'ScrollBar']
-	scrollBar:SetValue(scrollBar:GetValue() - direction * (scrollBar:GetHeight()/2))
-	parent:UpdateList()
-end
-
-local function TextureButton_Create(name, parent)
-	local button = CreateFrame('Button', name, parent)
-	button:SetWidth(WIDTH)
-	button:SetHeight(HEIGHT)
-
-	button.bg = button:CreateTexture()
-	button.bg:SetAllPoints(button)
-
-	local r, g, b = max(random(), 0.2), max(random(), 0.2), max(random(), 0.2)
-	button.bg:SetVertexColor(r, g, b)
-	button:EnableMouseWheel(true)
-	button:SetScript('OnClick', TextureButton_OnClick)
-	button:SetScript('OnMouseWheel', TextureButton_OnMouseWheel)
-	button:SetNormalFontObject('GameFontNormalLeft')
-	button:SetHighlightFontObject('GameFontHighlightLeft')
-	return button
-end
-
-local function Panel_UpdateList(self)
-	local SML = LibStub('LibSharedMedia-3.0')
-	local textures = SML:List('statusbar')
-	local currentTexture = self.owner.sets.texture
-
-	local scroll = self.scroll
-	FauxScrollFrame_Update(scroll, #textures, #self.buttons, HEIGHT + OFFSET)
-
-	for i,button in pairs(self.buttons) do
-		local index = i + scroll.offset
-
-		if index <= #textures then
-			button:SetText(textures[index])
-			button.bg:SetTexture(SML:Fetch('statusbar', textures[index]))
-			button:Show()
-		else
-			button:Hide()
-		end
-	end
-end
-
 local function AddTexturePanel(menu)
-	local p = menu:NewPanel(L.Texture)
-	p.UpdateList = Panel_UpdateList
-	p:SetScript('OnShow', function() p:UpdateList() end)
-	p.textures = LibStub('LibSharedMedia-3.0'):List('statusbar')
-
-	local name = p:GetName()
-	local scroll = CreateFrame('ScrollFrame', name .. 'ScrollFrame', p, 'FauxScrollFrameTemplate')
-	scroll:SetScript('OnVerticalScroll', function(self, arg1) FauxScrollFrame_OnVerticalScroll(self, arg1, HEIGHT + OFFSET, function() p:UpdateList() end) end)
-	scroll:SetScript('OnShow', function() p.buttons[1]:SetWidth(WIDTH) end)
-	scroll:SetScript('OnHide', function() p.buttons[1]:SetWidth(WIDTH + 20) end)
-	scroll:SetPoint('TOPLEFT', 8, 0)
-	scroll:SetPoint('BOTTOMRIGHT', -24, 2)
-	p.scroll = scroll
-
-	--add list buttons
-	p.buttons = {}
-	for i = 1, NUM_ITEMS do
-		local b = TextureButton_Create(name .. i, p)
-		if i == 1 then
-			b:SetPoint('TOPLEFT', 4, 0)
-		else
-			b:SetPoint('TOPLEFT', name .. i-1, 'BOTTOMLEFT', 0, -OFFSET)
-			b:SetPoint('TOPRIGHT', name .. i-1, 'BOTTOMRIGHT', 0, -OFFSET)
-		end
-		p.buttons[i] = b
-	end
-
-	p.height = 5 + (NUM_ITEMS * HEIGHT)
+	local p = menu:NewPanel("Textures")
+	Addon.MediaPanel:NewMediaButton(p, "Cast Bar", "StatusBar", "GetBarTexture", "SetTexture")
+	Addon.MediaPanel:NewMediaButton(p, "Background", "Background", "GetBackground", "SetBackground")
+	return p
 end
 
 local function AddLayoutPanel(menu)
@@ -483,15 +422,14 @@ local function AddLayoutPanel(menu)
 	panel:NewScaleSlider()
 	NewHeightSlider(panel)
 	NewWidthSlider(panel)
+	CheckButton(panel, "Show Icon", "showIcon")
 	return panel
 end
 
 local function AddBGPanel(menu)
 	local panel = menu:NewPanel("Background")
-	
 	NewInsetSlider(panel)
 	NewColorPicker(panel, "Color", "color")
-
 	return panel
 end
 
@@ -499,19 +437,20 @@ local function AddTextPanel(menu)
 	local panel = menu:NewPanel("Text")
 	CheckButton(panel, "Disable Time", "hideTime")
 	CheckButton(panel, "Disable Text", "hideText")
-
 	NewMenu(panel, "Time Format", "timeFormat", {"Default", "Percent", "Fraction"})
 	NewMenu(panel, "Align Text", "alignText", {"LEFT", "CENTER", "RIGHT"})
 	NewMenu(panel, "Align Time", "alignTime", {"LEFT", "CENTER", "RIGHT"})
+	--NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
+	
+	Addon.MediaPanel:NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
 
+	
 	return panel
 end
 
 local function AddAdvancedPanel(menu)
 	local panel = menu:NewPanel("Advanced")
-
 	panel:NewLeftToRightCheckbox()
-	
 	return panel
 end
 

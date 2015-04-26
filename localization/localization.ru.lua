@@ -1,4 +1,4 @@
-﻿--[[
+--[[
 	Localization.lua
 		Translations for Dominos Cast (English - Default Version)
 	Russian by ZealZany
