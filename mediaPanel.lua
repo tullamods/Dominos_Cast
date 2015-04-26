@@ -5,20 +5,13 @@ Addon.MediaPanel = mediaPanel
 
 local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 150, 20, 0
 function mediaPanel:UpdateList()
-	local mType = self.mediatype
-	local list = self.list
-	if not list then
-		return
-	end
-	local currentTexture = self.get(self.owner)
-	local scroll = self.scroll
-	FauxScrollFrame_Update(scroll, #list, #self.buttons, HEIGHT + OFFSET)
+	FauxScrollFrame_Update(self.scroll, #self.list, #self.buttons, HEIGHT + OFFSET)
 	for i,button in pairs(self.buttons) do
-		local index = i + scroll.offset
-		if index <= #list then
-			local filePath = SML:Fetch(self.mediatype, list[index])
-			local fileName = list[index]
-			mediaPanel:SetSelectorInfo(button, mType, filePath, fileName)
+		local index = i + self.scroll.offset
+		if index <= #self.list then
+			local filePath = SML:Fetch(self.mediatype, self.list[index])
+			local fileName = self.list[index]
+			mediaPanel:SetSelectorInfo(button, self.mediatype, filePath, fileName)
 		else
 			button:Hide()
 		end
@@ -43,9 +36,6 @@ function mediaPanel:SetSelectorInfo(button, mType, filePath, fileName)
 		button:SetBackdrop(nil)
 	else
 		button:GetFontString():SetFont(SML:Fetch("font", "GameFontNormal"), 12)
-		local r, g, b = max(random(), 0.2), max(random(), 0.2), max(random(), 0.2)
-		button:SetBackdropColor(r, g, b)
-		button:SetBackdropBorderColor(r, g, b)
 	end
 	button:GetFontString():SetAllPoints(button)
 	button:Show()
@@ -63,7 +53,6 @@ function mediaPanel:Display(anchor, clicked, mediaType, get, set)
 		return mediaPanel:Hide()
 	end
 	mediaPanel.holding = clicked
-	print(clicked)
 	clicked:SetChecked(true)
 	mediaPanel.owner = anchor.owner
 	mediaPanel:SetParent(anchor)
@@ -98,7 +87,7 @@ function mediaPanel:GetPanel()
 	end)
 	local name = self.panel:GetName()
 	local scroll = CreateFrame('ScrollFrame', name .. 'ScrollFrame', self.panel, 'FauxScrollFrameTemplate')
-	scroll:SetScript('OnVerticalScroll', function(self, arg1) FauxScrollFrame_OnVerticalScroll(self, arg1, HEIGHT + OFFSET, function() self.panel:UpdateList() end) end)
+	scroll:SetScript('OnVerticalScroll', function(scroll, arg1) FauxScrollFrame_OnVerticalScroll(scroll, arg1, HEIGHT + OFFSET, function() self.panel:UpdateList() end) end)
 	scroll:SetScript('OnShow', function() self.panel.buttons[1]:SetWidth(WIDTH) end)
 	scroll:SetScript('OnHide', function() self.panel.buttons[1]:SetWidth(WIDTH + 20) end)
 	scroll:SetPoint('TOPLEFT', 8, 0)
@@ -107,7 +96,7 @@ function mediaPanel:GetPanel()
 	scrollBar:ClearAllPoints()
 	scrollBar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", -6, -50)
 	scrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", -6, 26)
-	scroll:SetScript('OnMouseWheel', function(self, direction)
+	scroll:SetScript('OnMouseWheel', function(scroll, direction)
 		scrollBar:SetValue(scrollBar:GetValue() - direction * (scrollBar:GetHeight()/2))
 		self.panel:UpdateList()
 	end)
@@ -147,7 +136,6 @@ end
 function mediaPanel:NewMediaButton(parent, name, mediaType, get, set)
 	local button = CreateFrame("CheckButton", parent:GetName()..name.."MediaButton", parent, "UIMenuButtonStretchTemplate")
 	button:SetScript("OnClick", function()
-		print(button)
 		self:Display(parent, button, mediaType, get, set)
 	end)
 	button.texture = CreateFrame('Button', button:GetName().."Display", button)
@@ -164,7 +152,7 @@ function mediaPanel:NewMediaButton(parent, name, mediaType, get, set)
 	end)
 	button:SetSize(75, 20)
 	button:SetText(name)
-	button:SetCheckedTexture(button:GetHighlightTexture())
+	button:SetCheckedTexture(button:GetHighlightTexture():GetTexture())
 	local prev = parent.checkbutton
 	if prev then
 		button:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', 0, -0)
