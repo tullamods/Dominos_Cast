@@ -101,10 +101,11 @@ function Frame:GetDefaults()
 		alignTime = "RIGHT",
 		texture = "Interface\\TargetingFrame\\UI-StatusBar",
 		font = "Arial Narrow",
+		hideDefault = true,
 	}
 end
 
-local Version, checkSettings, requiresReset = 2.3, true, false
+local Version, checkSettings, requiresReset = 2.4, true, false
 
 function Frame:CheckVersion()
 	if ((not self.sets.version) or (self.sets.version ~= Version))then
@@ -121,7 +122,6 @@ end
 
 function Frame:Layout()
 	self:CheckVersion()
-
 	if self.sets.hideText then
 		self.cast.text:SetAlpha(0)
 	else
@@ -137,6 +137,7 @@ function Frame:Layout()
 	local SML = LibStub('LibSharedMedia-3.0', true)
 	self.cast.text:SetFont(SML:Fetch('font', self.sets.font), 12)
 	self.cast.time:SetFont(SML:Fetch('font', self.sets.font), 12)
+	self:ToggleBlizzard()
 end
 
 function Frame:Resize()
@@ -168,6 +169,15 @@ function Frame:ToggleIcon()
 		self.cast.icon:SetPoint(point, self.skin)
 	else
 		self.cast.icon:Hide()
+	end
+end
+
+function Frame:ToggleBlizzard()
+	if self.sets.hideDefault then
+		CastingBarFrame.parent = CastingBarFrame:GetParent():GetName()
+		CastingBarFrame:SetParent(MainMenuBarArtFrame)
+	else
+		CastingBarFrame:SetParent(_G[CastingBarFrame.parent] or UIParent)
 	end
 end
 
@@ -440,17 +450,14 @@ local function AddTextPanel(menu)
 	NewMenu(panel, "Time Format", "timeFormat", {"Default", "Percent", "Fraction"})
 	NewMenu(panel, "Align Text", "alignText", {"LEFT", "CENTER", "RIGHT"})
 	NewMenu(panel, "Align Time", "alignTime", {"LEFT", "CENTER", "RIGHT"})
-	--NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
-	
 	Addon.MediaPanel:NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
-
-	
 	return panel
 end
 
 local function AddAdvancedPanel(menu)
 	local panel = menu:NewPanel("Advanced")
 	panel:NewLeftToRightCheckbox()
+	CheckButton(panel, "Disable Blizzard", "hideDefault")
 	return panel
 end
 
