@@ -172,12 +172,15 @@ function Frame:ToggleIcon()
 	end
 end
 
+
+
 function Frame:ToggleBlizzard()
 	if self.sets.hideDefault then
 		CastingBarFrame.parent = CastingBarFrame:GetParent():GetName()
 		CastingBarFrame:SetParent(MainMenuBarArtFrame)
-	else
-		CastingBarFrame:SetParent(_G[CastingBarFrame.parent] or UIParent)
+	elseif CastingBarFrame.parent then --only do it if we are re-enabling
+		CastingBarFrame:SetParent(_G[CastingBarFrame.parent])
+		CastingBarFrame.parent = nil	
 	end
 end
 
