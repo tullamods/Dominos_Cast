@@ -6,6 +6,6 @@
 ## Dependencies: Dominos
 ## Version: 3
 mediaPanel.lua
-libs\LibSharedMedia-3.0\lib.xml
+embeds.xml
 localization.xml
 castBar.lua
