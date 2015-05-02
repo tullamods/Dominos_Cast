@@ -1,15 +1,16 @@
 --[[
-	CastBar, by Goranaws
+	castBar.lua, by Goranaws
 --]]
-
 local Addon = _G["Dominos"]
-local Frame = Addon:CreateClass('Frame', Addon.Frame)
-local L = LibStub('AceLocale-3.0'):GetLocale('Dominos-CastingBar')
-local SML = LibStub('LibSharedMedia-3.0')
+local CastBar = Addon:CreateClass('Frame', Addon.Frame)
+local Lib = LibStub('LibSharedMedia-3.0', true)
+local castLib = LibStub('AceLocale-3.0'):GetLocale('Dominos-CastingBar')
+local configLib
 
---[[ Bar ]]--
-function Frame:New()
-	return Frame.proto.New(self, 'cast')
+
+--[[ frame creation ]]--
+function CastBar:New()
+	return CastBar.proto.New(self, 'cast')
 end
 
 local function check(source, target)
@@ -33,9 +34,10 @@ local function check(source, target)
 	return target
 end
 
-function Frame:Create(...)
-	local bar = Frame.proto.Create(self, ...)
-	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar, "CastingBarFrameTemplate")
+function CastBar:Create(...)
+	local bar = CastBar.proto.Create(self, ...)
+	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar.header, "CastingBarFrameTemplate")
+	bar.cast:Hide()
 	bar.cast:SetPoint("Center")
 	bar.cast.unit = "player"
 	bar.cast:SetAttribute("unit", "player")
@@ -78,13 +80,13 @@ function Frame:Create(...)
 	return bar
 end
 
-function Frame:GetDefaults()
+function CastBar:GetDefaults()
 	return {
 		point = 'CENTER',
 		x = 0,
 		y = 30,
-		height = 1.6,
-		width = 20.0,
+		height = 19,
+		width = 200,
 		padding = 3,
 		hideText = false,
 		showIcon = true,
@@ -100,19 +102,25 @@ function Frame:GetDefaults()
 		alignText = "LEFT",
 		alignTime = "RIGHT",
 		texture = "Interface\\TargetingFrame\\UI-StatusBar",
-		font = "Arial Narrow",
+		font = "Friz Quadrata TT",
+		textcolor = {r = 1,g = 1,b = 1,a = 1},
 		hideDefault = true,
 	}
 end
 
-local Version, checkSettings, requiresReset = 2.4, true, false
 
-function Frame:CheckVersion()
+--[[ version control]]--
+local Version, checkSettings, requiresReset = 3, true, false
+
+function CastBar:CheckVersion()
+	if self.verified then
+	--	return
+	end
 	if ((not self.sets.version) or (self.sets.version ~= Version))then
 		if requiresReset then
 			wipe(self.sets)
 		end
-		self.sets.version = Version
+		self.sets.version = 3
 		if checkSettings then
 			self.sets = check(self:GetDefaults(), self.sets)
 		end
@@ -120,30 +128,20 @@ function Frame:CheckVersion()
 	end
 end
 
-function Frame:Layout()
-	self:CheckVersion()
 
-	if self.sets.hideText then
-		self.cast.text:SetAlpha(0)
-	else
-		self.cast.text:SetAlpha(1)
-	end
-	self:ToggleIcon()
-	self:Resize()
-	self:Skin()
-	self:ToggleTime()
-	self.cast.text:SetJustifyH(self.sets.alignText)
-	self.cast.time:SetJustifyH(self.sets.alignTime)
-	self:ApplyTexture()
-	local SML = LibStub('LibSharedMedia-3.0', true)
-	self.cast.text:SetFont(SML:Fetch('font', self.sets.font), 12)
-	self.cast.time:SetFont(SML:Fetch('font', self.sets.font), 12)
-	
-	self:ToggleBlizzard()
-	
+--[[ update functions ]]--
+
+function CastBar:Layout()
+	self:CheckVersion()
+	self:UpdateIcon()
+	self:UpdateSize()
+	self:UpdateTextures()
+	self:UpdateBlizzard()
+	self:UpdateText()
+	self:UpdateTime()
 end
 
-function Frame:Resize()
+function CastBar:UpdateSize()
 	local pw, ph = self:GetPadding()
 	local w, h = self.sets.width, self.sets.height
 	self:SetSize(w + pw, h + ph)
@@ -161,7 +159,7 @@ function Frame:Resize()
 	self.cast:SetPoint(point, self.skin)
 end
 
-function Frame:ToggleIcon()
+function CastBar:UpdateIcon()
 	if self.sets.showIcon then
 		self.cast.icon:Show()
 		local point = "Left"
@@ -175,109 +173,100 @@ function Frame:ToggleIcon()
 	end
 end
 
-function Frame:ToggleBlizzard()
+function CastBar:UpdateBlizzard()
 	if self.sets.hideDefault then
-		CastingBarFrame.parent = CastingBarFrame:GetParent():GetName()
 		CastingBarFrame:SetParent(MainMenuBarArtFrame)
 	else
-		CastingBarFrame:SetParent(_G[CastingBarFrame.parent] or UIParent)
+		CastingBarFrame:SetParent(UIParent)
 	end
 end
 
-function Frame:Skin()
+function CastBar:UpdateTextures()
 	self.skin:SetBackdrop({
 		bgFile = self.sets.bgFile,
 		insets = {left = -self.sets.inset, right = -self.sets.inset, top = -self.sets.inset, bottom = -self.sets.inset},
 		tile = false,
 	})
 	self.skin:SetBackdropColor(self.sets.color.r, self.sets.color.g, self.sets.color.b, self.sets.color.a)
+	local castTexture = (Lib and Lib:Fetch('statusbar', self.sets.texture)) or DEFAULT_STATUSBAR_TEXTURE
+	self.cast:SetStatusBarTexture(castTexture)
 end
 
-function Frame:ToggleTime()
-	if self.sets.hideTime then
-		self.cast.time:Hide()
+function CastBar:UpdateText()
+	if self.sets.hideText then
+		self.cast.text:SetAlpha(0)
+		return
 	else
-		self.cast.time:Show()
+		self.cast.text:SetAlpha(1)
+		self.cast.text:Show()
+		self.cast.text:SetJustifyH(self.sets.alignText)
+		self.cast.text:SetFont(Lib:Fetch('font', self.sets.font), 12)
+		local c = self.sets.textcolor
+		self.cast.text:SetTextColor(c.r, c.g, c.b, c.a )
 	end
 end
 
-function Frame:SetLeftToRight(isLeftToRight)
+function CastBar:UpdateTime()
+	if (self.sets.hideTime == true) then
+		self.cast.time:Hide()
+		return
+	end
+	self.cast.time:Show()
+	self.cast.time:SetJustifyH(self.sets.alignTime)
+	self.cast.time:SetFont(Lib:Fetch('font', self.sets.font), 12)
+	local c = self.sets.textcolor
+	self.cast.time:SetTextColor(c.r, c.g, c.b, c.a )
+end
+
+
+--[[ menu controls ]]--
+function CastBar:SetLeftToRight(isLeftToRight)
     local isRightToLeft = not isLeftToRight
     self.sets.isRightToLeft = isRightToLeft and true or nil
     self:Layout()
 end
 
-function Frame:GetLeftToRight()
+function CastBar:GetLeftToRight()
     return not self.sets.isRightToLeft
 end
 
-function Frame:ApplyTexture()
-	local texture = (SML and SML:Fetch('statusbar', self.sets.texture)) or DEFAULT_STATUSBAR_TEXTURE
-	self.cast:SetStatusBarTexture(texture)
-end
-
-function Frame:SetTexture(texture)
+function CastBar:SetTexture(texture)
 	self.sets.texture = texture
-	self:ApplyTexture()
+	self:UpdateTextures()
 end
 
-function Frame:GetBarTexture()
+function CastBar:GetBarTexture()
 	return self.sets.texture
 end
 
-function Frame:SetBackground(texture)
+function CastBar:SetBackground(texture)
 	self.sets.bgFile = texture
-	self:Skin()
+	self:UpdateTextures()
 end
 
-function Frame:GetBackground()
+function CastBar:GetBackground()
 	return self.sets.bgFile
 end
 
-function Frame:GetFont()
+function CastBar:GetFont()
 	return self.sets.font
 end
 
-function Frame:SetFont(font)
+function CastBar:SetFont(font)
 	self.sets.font = font
 	self:Layout()
 end
 
---[[ Menu Code ]]--
-function NewWidthSlider(menu)
-	return menu:NewSlider("Width", 16, 600, 1,
-		function(self)
-			local width = menu.owner.sets.width
-			self:SetValue(width)
-		end, 
-		function(self, value)
-			menu.owner.sets.width = value
-			menu.owner:Layout()
-		end
-	)
-end
 
-function NewHeightSlider(menu)
-	return menu:NewSlider("Height", 5, 100, 1,
+--[[ menu options ]]--
+local function AddSlider(panel, name, key, min, max, step)
+	return panel:NewSlider(name, min, max, step,
 		function(self)
-			local height = menu.owner.sets.height
-			self:SetValue(height)
+			self:SetValue(panel.owner.sets[key] or min + ((max - min)/2))
 		end, 
 		function(self, value)
-			menu.owner.sets.height= value
-			menu.owner:Layout()
-		end
-	)
-end
-
-function NewInsetSlider(menu)
-	return menu:NewSlider("Inset", -30, 100, 1,
-		function(self)
-			self:SetValue(menu.owner.sets.inset)
-		end, 
-		function(self, value)
-			menu.owner.sets.inset= value
-			menu.owner:Layout()
+			panel.owner.sets[key] = value
+			panel.owner:Layout()
 		end
 	)
 end
@@ -337,7 +326,7 @@ local function NewColorPicker(menu, name, key)
 	return button
 end
 
-local function CheckButton(panel, name, key)
+local function AddCheckButton(panel, name, key)
 	local c = panel:NewCheckButton(name)
 	c:SetScript("OnShow",
 		function(self)
@@ -420,74 +409,101 @@ local function NewMenu(menu, name, key, table)
 	return f
 end
 
-local function AddTexturePanel(menu)
-	local p = menu:NewPanel("Textures")
-	Addon.MediaPanel:NewMediaButton(p, "Cast Bar", "StatusBar", "GetBarTexture", "SetTexture")
-	Addon.MediaPanel:NewMediaButton(p, "Background", "Background", "GetBackground", "SetBackground")
-	return p
-end
 
+--[[ option panels ]]--
 local function AddLayoutPanel(menu)
-	local panel = menu:NewPanel(LibStub('AceLocale-3.0'):GetLocale('Dominos-Config').Layout)
+	local panel = menu:NewPanel(configLib.Layout)
 	panel:NewOpacitySlider()
 	panel:NewFadeSlider()
 	panel:NewPaddingSlider()
 	panel:NewScaleSlider()
-	NewHeightSlider(panel)
-	NewWidthSlider(panel)
-	CheckButton(panel, "Show Icon", "showIcon")
+	AddSlider(panel, "Height", "height", 5, 100, 1)
+	AddSlider(panel, "Width", "width", 16, 600, 1)
+	AddCheckButton(panel, "Show Icon", "showIcon")
 	return panel
 end
 
-local function AddBGPanel(menu)
-	local panel = menu:NewPanel("Background")
-	NewInsetSlider(panel)
+local function AddTexturePanel(menu)
+	local panel = menu:NewPanel("Textures")
+	Addon.MediaPanel:NewMediaButton(panel, "Background", "Background", "GetBackground", "SetBackground")
 	NewColorPicker(panel, "Color", "color")
+	Addon.MediaPanel:NewMediaButton(panel, "Cast Bar", "StatusBar", "GetBarTexture", "SetTexture")
+	AddSlider(panel, "Background Inset", "inset", -30, 100, 1)
 	return panel
 end
 
 local function AddTextPanel(menu)
 	local panel = menu:NewPanel("Text")
-	CheckButton(panel, "Disable Time", "hideTime")
-	CheckButton(panel, "Disable Text", "hideText")
+	AddCheckButton(panel, "Disable Time", "hideTime")
 	NewMenu(panel, "Time Format", "timeFormat", {"Default", "Percent", "Fraction"})
-	NewMenu(panel, "Align Text", "alignText", {"LEFT", "CENTER", "RIGHT"})
 	NewMenu(panel, "Align Time", "alignTime", {"LEFT", "CENTER", "RIGHT"})
-	--NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
-	
-	Addon.MediaPanel:NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
 
-	
+
+	AddCheckButton(panel, "Disable Text", "hideText")
+	NewMenu(panel, "Align Text", "alignText", {"LEFT", "CENTER", "RIGHT"})
+	NewColorPicker(panel, "Color", "textcolor")
+	Addon.MediaPanel:NewMediaButton(panel, "Font", "Font", "GetFont", "SetFont")
+	return panel
+end
+
+local function AddStatePanel(menu)
+	local panel = menu:NewPanel(configLib.ShowStates)
+	panel.height = 56
+	local editBox = CreateFrame('EditBox', panel:GetName() .. 'StateText', panel, 'InputBoxTemplate')
+	editBox:SetWidth(148) editBox:SetHeight(20)
+	editBox:SetPoint('TOPLEFT', 12, -10)
+	editBox:SetAutoFocus(false)
+	editBox:SetScript('OnShow', function()
+		editBox:SetText(panel.owner:GetShowStates() or '')
+		editBox:ClearFocus()
+	end)
+	editBox:SetScript('OnEscapePressed', editBox:GetScript("OnShow"))
+	editBox:SetScript('OnEnterPressed', function()
+		local text = editBox:GetText()
+		panel.owner:SetShowStates(text ~= '' and text or nil)
+		editBox:ClearFocus()
+	end)
+	editBox:SetScript('OnEditFocusLost', function(self) self:HighlightText(0, 0) end)
+	editBox:SetScript('OnEditFocusGained', function(self) self:HighlightText() end)
+
+	local set = CreateFrame('Button', panel:GetName() .. 'Set', panel, 'UIPanelButtonTemplate')
+	set:SetWidth(30) set:SetHeight(20)
+	set:SetText(configLib.Set)
+	set:SetPoint('BOTTOMRIGHT', -8, 2)
+	set:SetScript('OnClick', editBox:GetScript("OnEnterPressed"))
+
 	return panel
 end
 
 local function AddAdvancedPanel(menu)
 	local panel = menu:NewPanel("Advanced")
-	panel:NewLeftToRightCheckbox()
-	CheckButton(panel, "Disable Blizzard", "hideDefault")
-	
+	panel:NewCheckButton("Left To Right", 'GetLeftToRight', 'SetLeftToRight')
+	panel:NewClickThroughCheckbox()
+	panel:NewShowInOverrideUICheckbox()
+	panel:NewShowInPetBattleUICheckbox()
+	AddCheckButton(panel, "Disable Blizzard", "hideDefault")
 	return panel
 end
 
-function Frame:CreateMenu()
+function CastBar:CreateMenu()
 	local menu = Addon:NewMenu(self.id)
 	if menu then
+		configLib = LibStub('AceLocale-3.0'):GetLocale('Dominos-Config')
 		AddLayoutPanel(menu)
-		AddBGPanel(menu)
 		AddTexturePanel(menu)
 		AddTextPanel(menu)
+		AddStatePanel(menu)
 	 	AddAdvancedPanel(menu)
 		self.menu = menu
 	end
-	return menu
 end
 
 
---[[ module ]]--
+--[[ module control ]]--
 local Controller = Addon:NewModule('Cast')
 
 function Controller:Load()
-	self.frame = Frame:New()
+	self.frame = CastBar:New()
 end
 
 function Controller:Unload()
