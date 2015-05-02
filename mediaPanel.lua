@@ -1,24 +1,27 @@
+--[[
+	Needs rewrite for clarity.
+--]]
 local Addon = _G["Dominos"]
 local SML = LibStub('LibSharedMedia-3.0')
-local mediaPanel = Addon:CreateClass('Frame')
-Addon.MediaPanel = mediaPanel
+local Media = {}
+Addon.MediaPanel = Media
 
 local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 150, 20, 0
-function mediaPanel:UpdateList()
+function Media:UpdateList()
 	FauxScrollFrame_Update(self.scroll, #self.list, #self.buttons, HEIGHT + OFFSET)
 	for i,button in pairs(self.buttons) do
 		local index = i + self.scroll.offset
 		if index <= #self.list then
 			local filePath = SML:Fetch(self.mediatype, self.list[index])
 			local fileName = self.list[index]
-			mediaPanel:SetSelectorInfo(button, self.mediatype, filePath, fileName)
+			Media:SetSelectorInfo(button, self.mediatype, filePath, fileName)
 		else
 			button:Hide()
 		end
 	end
 end
 
-function mediaPanel:SetSelectorInfo(button, mType, filePath, fileName)
+function Media:SetSelectorInfo(button, mType, filePath, fileName)
 	button:SetText(fileName)
 	if mType == "border" then
 		button:SetBackdrop({
@@ -41,33 +44,33 @@ function mediaPanel:SetSelectorInfo(button, mType, filePath, fileName)
 	button:Show()
 end
 
-function mediaPanel:Display(anchor, clicked, mediaType, get, set)
-	local mediaPanel = self:GetPanel()
-	local holding = mediaPanel.holding
+function Media:Display(anchor, clicked, mediaType, get, set)
+	local Media = self:GetPanel()
+	local holding = Media.holding
 	if holding then
 		holding:SetChecked(false)
 	end
-	if clicked and (mediaPanel.holding == clicked) then
+	if clicked and (Media.holding == clicked) then
 		clicked:SetChecked(false)
-		mediaPanel.holding = nil
-		return mediaPanel:Hide()
+		Media.holding = nil
+		return Media:Hide()
 	end
-	mediaPanel.holding = clicked
+	Media.holding = clicked
 	clicked:SetChecked(true)
-	mediaPanel.owner = anchor.owner
-	mediaPanel:SetParent(anchor)
-	mediaPanel.title:SetText(mediaType)
-	mediaPanel:ClearAllPoints()
-	mediaPanel:SetPoint('TopLeft', anchor:GetParent(), "TopRight")
-	mediaPanel.mediatype = string.lower(mediaType)
-	mediaPanel.list = SML:List(string.lower(mediaType))
-	mediaPanel.get = anchor.owner[get]
-	mediaPanel.set = anchor.owner[set]
-	mediaPanel:UpdateList()
-	mediaPanel:Show()
+	Media.owner = anchor.owner
+	Media:SetParent(anchor)
+	Media.title:SetText(mediaType)
+	Media:ClearAllPoints()
+	Media:SetPoint('TopLeft', anchor:GetParent(), "TopRight")
+	Media.mediatype = string.lower(mediaType)
+	Media.list = SML:List(string.lower(mediaType))
+	Media.get = anchor.owner[get]
+	Media.set = anchor.owner[set]
+	Media:UpdateList()
+	Media:Show()
 end
 
-function mediaPanel:GetPanel()
+function Media:GetPanel()
 	if DominosMediaPanel then
 		return DominosMediaPanel
 	end
@@ -133,13 +136,15 @@ function mediaPanel:GetPanel()
 	return self.panel
 end
 
-function mediaPanel:NewMediaButton(parent, name, mediaType, get, set)
+function Media:NewMediaButton(parent, name, mediaType, get, set)
 	local button = CreateFrame("CheckButton", parent:GetName()..name.."MediaButton", parent, "UIMenuButtonStretchTemplate")
 	button:SetScript("OnClick", function()
 		self:Display(parent, button, mediaType, get, set)
 	end)
 	button.texture = CreateFrame('Button', button:GetName().."Display", button)
-	button.texture:SetWidth(100)
+	button:SetHeight(20)
+	button:SetText(name)
+	button:SetWidth(button:GetTextWidth()+8)
 	button.texture:SetHeight(20)
 	button.texture:EnableMouse(false)
 	button.texture:SetNormalFontObject('GameFontNormal')
@@ -149,9 +154,10 @@ function mediaPanel:NewMediaButton(parent, name, mediaType, get, set)
 		local mtype = string.lower(mediaType)
 		local got = parent.owner[get]
 		self:SetSelectorInfo(button.texture, mtype, SML:Fetch(mtype, got(parent.owner)), got(parent.owner))
+		button.texture:SetWidth(abs(parent:GetWidth()-(button:GetWidth()))-5)
 	end)
-	button:SetSize(75, 20)
-	button:SetText(name)
+
+	
 	button:SetCheckedTexture(button:GetHighlightTexture():GetTexture())
 	local prev = parent.checkbutton
 	if prev then
