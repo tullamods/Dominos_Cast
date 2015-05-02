@@ -4,8 +4,12 @@
 ## Notes: A movable casting bar, with timer
 ## Author: Tuller, Goranaws
 ## Dependencies: Dominos
+<<<<<<< HEAD
+## Version: 3
+=======
 ## Version: 2
+>>>>>>> origin/master
 mediaPanel.lua
-embeds.xml
+libs\LibSharedMedia-3.0\lib.xml
 localization.xml
 castBar.lua
