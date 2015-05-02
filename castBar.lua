@@ -130,7 +130,6 @@ end
 
 
 --[[ update functions ]]--
-
 function CastBar:Layout()
 	self:CheckVersion()
 	self:UpdateIcon()
