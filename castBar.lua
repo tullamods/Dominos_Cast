@@ -182,7 +182,7 @@ end
 
 function CastBar:UpdateTextures()
 	self.skin:SetBackdrop({
-		bgFile = self.sets.bgFile,
+		bgFile = Lib and Lib:Fetch('background', self.sets.bgFile),
 		insets = {left = -self.sets.inset, right = -self.sets.inset, top = -self.sets.inset, bottom = -self.sets.inset},
 		tile = false,
 	})
