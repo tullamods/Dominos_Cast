@@ -193,10 +193,12 @@ function Media:NewMediaButton(parent, name, mediaType, get, set)
 	button.texture:SetNormalFontObject('GameFontNormal')
 	button.texture:SetHighlightFontObject('GameFontHighlight')
 	button.texture:SetPoint("Left", button, "Right")
+	
 	button:SetScript("OnShow", function()
 		local mtype = string.lower(mediaType)
 		local got = parent.owner[get]
-		(button.texture:Set(mtype, SML:Fetch(mtype, got(parent.owner)), got(parent.owner))
+		
+		button.texture:Set(mtype, SML:Fetch(mtype, got(parent.owner)), got(parent.owner))
 		button.texture:SetWidth(abs(parent:GetWidth()-(button:GetWidth()))-5)
 	end)
 
