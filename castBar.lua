@@ -109,7 +109,11 @@ function CastBar:GetDefaults()
 end
 
 
---[[ version control]]--
+--[[ version control
+	This can be removed if preferred.
+	It's just an easy way for me to 
+	tinker. ~Goranaws
+--]]
 local Version, checkSettings, requiresReset = 3, true, false
 
 function CastBar:CheckVersion()
