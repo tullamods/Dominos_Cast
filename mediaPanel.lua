@@ -236,13 +236,13 @@ do
 
 		local prev = parent.checkbutton --I'd like to call it parent.button instead, everywhere. ~Goranaws
 		if prev then
-			button:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', 0, -0)
+			button:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', 0, -2)
 		else
-			button:SetPoint('TOPLEFT', 2, -5)
+			button:SetPoint('TOPLEFT', 2, -2)
 		end
 
 		parent.checkbutton = button
-		parent.height = parent.height + 24
+		parent.height = parent.height + 27
 	end
 
 	Addon.MediaPanel = Media
