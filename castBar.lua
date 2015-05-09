@@ -53,6 +53,10 @@ function CastBar:Create(...)
 	bar.skin:SetFrameLevel(bar:GetFrameLevel()-1)
 	bar.skin:SetPoint("Center", bar)
 	bar.cast:HookScript("OnUpdate", function()
+		bar.cast.icon:SetTexCoord(.15,.85,.15,.85)
+		if bar.cast.time.hidden == true then
+			return
+		end	
 		local _, _, _, _, startTime, endTime = UnitCastingInfo("player")
 		if not startTime then
 			_, _, _, _, startTime, endTime = UnitChannelInfo("player")
@@ -67,7 +71,7 @@ function CastBar:Create(...)
 				bar.cast.time:SetText(string.format("%.1f", GetTime() - (startTime / 1000) ).."/"..string.format("%.1f", (endTime- startTime)/1000))
 			end
 		end
-		bar.cast.icon:SetTexCoord(.15,.85,.15,.85)
+
 	end)
 	bar.cast.border:SetParent(MainMenuBarArtFrame)
 	bar.cast.borderShield:SetParent(MainMenuBarArtFrame)
@@ -140,8 +144,7 @@ function CastBar:Layout()
 	self:UpdateSize()
 	self:UpdateTextures()
 	self:UpdateBlizzard()
-	self:UpdateText()
-	self:UpdateTime()
+	self:UpdateStrings()
 end
 
 function CastBar:UpdateSize()
@@ -202,16 +205,48 @@ function CastBar:UpdateText()
 	else
 		self.cast.text:SetAlpha(1)
 		self.cast.text:Show()
-		self.cast.text:SetJustifyH(self.sets.alignText)
+
+		local isLeftToRight = self:GetLeftToRight()
+		local align = self.sets.alignText 
+		if isLeftToRight == false then
+			if align == "LEFT" then
+				align = "RIGHT"
+			elseif align == "RIGHT" then
+				align = "LEFT"
+			end
+		end
+		self.cast.text:SetJustifyH(align)
+		
 		self.cast.text:SetFont(Lib:Fetch('font', self.sets.font), 12)
+		
 		local c = self.sets.textcolor
 		self.cast.text:SetTextColor(c.r, c.g, c.b, c.a )
+	end
+end
+
+function CastBar:UpdateStrings()
+	self:UpdateText()
+	self:UpdateTime()
+	local time, text = self.cast.time, self.cast.text
+	local isLeftToRight = self:GetLeftToRight()
+	time:ClearAllPoints()
+	text:ClearAllPoints()
+	if isLeftToRight then
+		time:SetPoint("Right", self.cast)
+		text:SetPoint("Left", self.cast)
+		text:SetPoint("Right", time, "Left")
+	else
+		time:SetPoint("Left", self.cast)
+		text:SetPoint("Right", self.cast)
+		text:SetPoint("Left", time, "Right")
 	end
 end
 
 function CastBar:UpdateTime()
 	if (self.sets.hideTime == true) then
 		self.cast.time:Hide()
+		self.cast.time:SetText("")
+		self.cast.time.hidden = true
 		return
 	end
 	self.cast.time:Show()
@@ -219,6 +254,7 @@ function CastBar:UpdateTime()
 	self.cast.time:SetFont(Lib:Fetch('font', self.sets.font), 12)
 	local c = self.sets.textcolor
 	self.cast.time:SetTextColor(c.r, c.g, c.b, c.a )
+	self.cast.time.hidden = nil
 end
 
 
