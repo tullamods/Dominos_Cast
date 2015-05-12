@@ -7,7 +7,6 @@ local Lib = LibStub('LibSharedMedia-3.0', true)
 local castLib = LibStub('AceLocale-3.0'):GetLocale('Dominos-CastingBar')
 local configLib
 
-
 --[[ frame creation ]]--
 function CastBar:New()
 	return CastBar.proto.New(self, 'cast')
@@ -42,37 +41,16 @@ function CastBar:Create(...)
 	bar.cast.unit = "player"
 	bar.cast:SetAttribute("unit", "player")
 	CastingBarFrame_SetLook(bar.cast, "UNITFRAME")
-	bar.cast.text:SetAllPoints(bar.cast)
 	bar.cast.time = bar.cast:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
 	bar.cast.time:SetTextColor(1.0,1.0,1.0)
-	bar.cast.time:SetAllPoints(bar.cast)
 	--background handler
 		--now doubles as an anchor
 		--for the castBar and Icon.
 	bar.skin = CreateFrame("Frame", bar:GetName().."Skin", bar.cast)
 	bar.skin:SetFrameLevel(bar:GetFrameLevel()-1)
 	bar.skin:SetPoint("Center", bar)
-	bar.cast:HookScript("OnUpdate", function()
-		bar.cast.icon:SetTexCoord(.15,.85,.15,.85)
-		if bar.cast.time.hidden == true then
-			return
-		end	
-		local _, _, _, _, startTime, endTime = UnitCastingInfo("player")
-		if not startTime then
-			_, _, _, _, startTime, endTime = UnitChannelInfo("player")
-		end
-		if endTime and (endTime > 0) then
-			local style = bar.sets.timeFormat
-			if style == "Default" then
-				bar.cast.time:SetText(string.format("%.1f", (endTime / 1000) - GetTime()))
-			elseif style == "Percent" then
-				bar.cast.time:SetText(string.format("%.0f", ((GetTime() - (startTime / 1000)) / ((endTime- startTime)/1000))*100).."%")
-			elseif style == "Fraction" then
-				bar.cast.time:SetText(string.format("%.1f", GetTime() - (startTime / 1000) ).."/"..string.format("%.1f", (endTime- startTime)/1000))
-			end
-		end
+	bar.cast:HookScript("OnUpdate", bar.SetTime)
 
-	end)
 	bar.cast.border:SetParent(MainMenuBarArtFrame)
 	bar.cast.borderShield:SetParent(MainMenuBarArtFrame)
 	bar.cast.barFlash:SetTexture("Interface\\Cooldown\\star4")
@@ -112,13 +90,12 @@ function CastBar:GetDefaults()
 	}
 end
 
-
 --[[ version control
 	This can be removed if preferred.
 	It's just an easy way for me to 
 	tinker. ~Goranaws
 --]]
-local Version, checkSettings, requiresReset = 3, true, false
+local Version, checkSettings, requiresReset = 3.5, true, false
 
 function CastBar:CheckVersion()
 	if self.verified then
@@ -136,7 +113,6 @@ function CastBar:CheckVersion()
 	end
 end
 
-
 --[[ update functions ]]--
 function CastBar:Layout()
 	self:CheckVersion()
@@ -144,7 +120,7 @@ function CastBar:Layout()
 	self:UpdateSize()
 	self:UpdateTextures()
 	self:UpdateBlizzard()
-	self:UpdateStrings()
+	self:UpdateText()
 end
 
 function CastBar:UpdateSize()
@@ -199,38 +175,15 @@ function CastBar:UpdateTextures()
 end
 
 function CastBar:UpdateText()
-	if self.sets.hideText then
-		self.cast.text:SetAlpha(0)
-		return
-	else
-		self.cast.text:SetAlpha(1)
-		self.cast.text:Show()
-
-		local isLeftToRight = self:GetLeftToRight()
-		local align = self.sets.alignText 
-		if isLeftToRight == false then
-			if align == "LEFT" then
-				align = "RIGHT"
-			elseif align == "RIGHT" then
-				align = "LEFT"
-			end
-		end
-		self.cast.text:SetJustifyH(align)
-		
-		self.cast.text:SetFont(Lib:Fetch('font', self.sets.font), 12)
-		
-		local c = self.sets.textcolor
-		self.cast.text:SetTextColor(c.r, c.g, c.b, c.a )
-	end
-end
-
-function CastBar:UpdateStrings()
-	self:UpdateText()
-	self:UpdateTime()
 	local time, text = self.cast.time, self.cast.text
 	local isLeftToRight = self:GetLeftToRight()
+
 	time:ClearAllPoints()
 	text:ClearAllPoints()
+
+	local textAlign = self.sets.alignText
+	local timeAlign = self.sets.alignTime
+
 	if isLeftToRight then
 		time:SetPoint("Right", self.cast)
 		text:SetPoint("Left", self.cast)
@@ -239,24 +192,73 @@ function CastBar:UpdateStrings()
 		time:SetPoint("Left", self.cast)
 		text:SetPoint("Right", self.cast)
 		text:SetPoint("Left", time, "Right")
-	end
-end
 
-function CastBar:UpdateTime()
-	if (self.sets.hideTime == true) then
-		self.cast.time:Hide()
-		self.cast.time:SetText("")
-		self.cast.time.hidden = true
-		return
+		if textAlign == "LEFT" then
+			textAlign = "RIGHT"
+		elseif textAlign == "RIGHT" then
+			textAlign = "LEFT"
+		end
+		if timeAlign == "LEFT" then
+			timeAlign = "RIGHT"
+		elseif timeAlign == "RIGHT" then
+			timeAlign = "LEFT"
+		end
 	end
-	self.cast.time:Show()
-	self.cast.time:SetJustifyH(self.sets.alignTime)
-	self.cast.time:SetFont(Lib:Fetch('font', self.sets.font), 12)
+
+	text:SetJustifyH(textAlign)
+	time:SetJustifyH(timeAlign)
+
+	local font = Lib:Fetch('font', self.sets.font)
+	text:SetFont(font, 12)
+	time:SetFont(font, 12)
+
 	local c = self.sets.textcolor
-	self.cast.time:SetTextColor(c.r, c.g, c.b, c.a )
-	self.cast.time.hidden = nil
+	text:SetTextColor(c.r, c.g, c.b, c.a )
+	time:SetTextColor(c.r, c.g, c.b, c.a )
+
+	if self.sets.hideText then
+		text:SetAlpha(0)
+	else
+		text:SetAlpha(1)
+		text:Show()
+	end
+
+	if (self.sets.hideTime == true) then
+		time:SetAlpha(0)
+		--time.hidden = true
+	else
+		time:SetAlpha(1)
+		--time.hidden = nil
+	end
 end
 
+function CastBar:SetTime()
+	self.icon:SetTexCoord(.15,.85,.15,.85)
+
+	if self.time.hidden == true then
+		return
+	end	
+	local startTime, endTime
+	local sets = self:GetParent():GetParent().sets
+    if ( self.casting ) then
+        _, _, _, _, startTime, endTime = UnitCastingInfo("player")
+    elseif ( self.channeling ) then
+		_, _, _, _, startTime, endTime = UnitChannelInfo("player")
+    end
+	if endTime and (endTime > 0) then
+		local style = sets.timeFormat
+		local text
+		local time = GetTime()
+		if style == "Default" then
+			text = string.format("%.1f", (endTime / 1000) - time)
+		elseif style == "Percent" then
+			text = string.format("%.0f", ((time - (startTime / 1000)) / ((endTime- startTime)/1000))*100).."%"
+		elseif style == "Fraction" then
+			text = string.format("%.1f", time - (startTime / 1000) ).."/"..string.format("%.1f", (endTime- startTime)/1000)
+		end
+		self.time:SetText(text or "")
+	end
+end
 
 --[[ menu controls ]]--
 function CastBar:SetLeftToRight(isLeftToRight)
@@ -296,7 +298,6 @@ function CastBar:SetFont(font)
 	self:Layout()
 end
 
-
 --[[ menu options ]]--
 local function AddSlider(panel, name, key, min, max, step)
 	return panel:NewSlider(name, min, max, step,
@@ -321,9 +322,10 @@ local function ShowColorPicker(r, g, b, a, changedCallback)
 	ColorPickerFrame:Show()
 end
 
-local function NewColorPicker(menu, name, key)
+local function NewColorPicker(menu, name, key) --this thing needs help.
 	local button = CreateFrame("Button", menu:GetName()..name, menu)
 	button:SetSize(24, 24)
+	button:SetHitRectInsets(0,-75,0,0)
 	local text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	text:SetText(name)
 	text:SetPoint("Left", button, "Right", 5, 0)
@@ -448,7 +450,6 @@ local function NewMenu(menu, name, key, table)
 	return f
 end
 
-
 --[[ option panels ]]--
 local function AddLayoutPanel(menu)
 	local panel = menu:NewPanel(configLib.Layout)
@@ -517,7 +518,6 @@ end
 local function AddAdvancedPanel(menu)
 	local panel = menu:NewPanel("Advanced")
 	panel:NewCheckButton("Left To Right", 'GetLeftToRight', 'SetLeftToRight')
-	panel:NewClickThroughCheckbox()
 	panel:NewShowInOverrideUICheckbox()
 	panel:NewShowInPetBattleUICheckbox()
 	AddCheckButton(panel, "Disable Blizzard", "hideDefault")
@@ -536,7 +536,6 @@ function CastBar:CreateMenu()
 		self.menu = menu
 	end
 end
-
 
 --[[ module control ]]--
 local Controller = Addon:NewModule('Cast')
