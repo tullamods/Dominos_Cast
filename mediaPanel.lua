@@ -22,7 +22,6 @@ do
 
 	function mediaButton:Set(mType, fileName)
 		local fileName = fileName()
-		print(mType, fileName)
 		self:SetText(fileName)
 		local filePath = LibSharedMedia:Fetch(mType, fileName)
 		if mType == 'border' then
@@ -174,7 +173,7 @@ do
 
 	function Media:Display(anchor, clicked, mediaType, get, set)
 		local panel = self:GetOrCreatePanel()
-		local holding = panel.holding -- 
+		local holding = panel.holding
 
 		if holding then
 			holding:SetChecked(false)
@@ -219,6 +218,8 @@ do
 
 		button.get = function() return parent.owner[get](parent.owner) end
 		button.set = function(...) return parent.owner[set](parent.owner, ...) end
+
+		button:SetHitRectInsets(0,-75,0,0)
 
 		button.preview = mediaButton:New(button)
 		button.preview:SetPoint("Left", button,"Right")
