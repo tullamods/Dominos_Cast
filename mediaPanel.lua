@@ -1,5 +1,5 @@
 --[[
-	Needs rewrite for clarity.
+	Needs rewrite for clarity. --in progess
 --]]
 local Addon = _G['Dominos']
 local AddonName = ...
@@ -9,7 +9,7 @@ local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 150, 20, 0
 --[[ buttons ]]--
 local mediaButton = Addon:CreateClass('Button')
 do
-	function mediaButton:New(id, parent)
+	function mediaButton:New(parent)
 		local button = self:Bind(CreateFrame('Button', nil, parent))
 
 		button:SetSize(WIDTH, HEIGHT)
@@ -20,9 +20,10 @@ do
 		return button
 	end
 
-	function mediaButton:Set(mType, filePath, fileName)
+	function mediaButton:Set(mType, fileName)
+		local fileName = fileName()
 		self:SetText(fileName)
-
+		local filePath = LibSharedMedia:Fetch(mType, fileName)
 		if mType == 'border' then
 			self:SetBackdrop({
 				edgeFile = filePath,
@@ -34,22 +35,22 @@ do
 				tile = false,
 			})
 		end
-
-		if mType == 'font' then
-			self:GetFontString():SetFont(filePath, 12)
-			self:SetBackdrop(nil)
-		else
-			self:GetFontString():SetFont(LibSharedMedia:Fetch('font', 'GameFontNormal'), 12)
+		local string = self:GetFontString()
+		if string then
+			if mType == 'font' then
+				string:SetFont(filePath, 12)
+				self:SetBackdrop(nil)
+			else
+				string:SetFont(LibSharedMedia:Fetch('font', 'Friz Quadrata TT'), 12)
+			end
+			self:GetFontString():SetAllPoints(self)
 		end
-
-		self:GetFontString():SetAllPoints(self)
 		self:Show()
 	end
 end
 
 --[[ panel ]]--
 local mediaPanel = Addon:CreateClass('Frame')
-
 do
 	function mediaPanel:New(name)
 		local panel = self:Bind(CreateFrame('Frame', name, UIParent, 'TranslucentFrameTemplate'))
@@ -69,13 +70,13 @@ do
 		panel:CreateButtons()
 		panel:SetSize(WIDTH+40, 50 + (NUM_ITEMS * HEIGHT))
 	
-		-- panel:SetScript('OnHide', function(self)
-		-- 	if self.holding then
-		-- 		self.holding:SetChecked(false)
-		-- 		self.holding:GetScript('OnShow')(self)
-		-- 		self.holding = nil
-		-- 	end
-		-- end)
+		panel:SetScript('OnHide', function(self)
+			if self.holding then
+				self.holding:SetChecked(false)
+				self.holding:GetScript('OnShow')(self)
+				self.holding = nil
+			end
+		end)
 
 		-- make panel close on escape
 		tinsert(UISpecialFrames, panel:GetName())
@@ -119,9 +120,9 @@ do
 			local buttons = panel.buttons
 
 			for i, button in pairs(panel.buttons) do
-				if MouseIsOver(button) then
+				if MouseIsOver(button) and button:IsShown() then
 					if panel.set then
-						panel.set(panel.owner, button:GetText())
+						panel.set(button:GetText())
 						panel:Hide()
 					end
 				end
@@ -135,7 +136,7 @@ do
 		local buttons = {}
 
 		for i = 1, NUM_ITEMS do
-			local button = mediaButton:New(i, self)
+			local button = mediaButton:New(self)
 
 			if i == 1 then
 				button:SetPoint('TOPLEFT', 12, -37)
@@ -158,9 +159,7 @@ do
 
 			if index <= #self.list then
 				local filePath = LibSharedMedia:Fetch(self.mediatype, self.list[index])
-				local fileName = self.list[index]
-
-				button:Set(self.mediatype, filePath, fileName)
+				button:Set(self.mediatype, function() return self.list[index] end)
 				button:Show()
 			else
 				button:Hide()
@@ -180,7 +179,7 @@ do
 			holding:SetChecked(false)
 		end
 
-		if clicked and (panel.holding == clicked) then
+		if clicked and (holding == clicked) then
 			clicked:SetChecked(false)
 			panel.holding = nil
 			return panel:Hide()
@@ -195,9 +194,9 @@ do
 		panel:SetPoint('TopLeft', anchor:GetParent(), 'TopRight')
 		panel.mediatype = string.lower(mediaType)
 
-		panel.list = LibSharedMedia:List(string.lower(mediaType))
-		panel.get = anchor.owner[get]
-		panel.set = anchor.owner[set]
+		panel.list = LibSharedMedia:List(panel.mediatype)
+		panel.get = function() return anchor.owner[get](anchor.owner) end
+		panel.set = function(...) return anchor.owner[set](anchor.owner, ...) end
 
 		panel:UpdateList()
 		panel:Show()
@@ -207,7 +206,6 @@ do
 		if not self.panel then
 			self.panel = mediaPanel:New('DominosMediaPanel')
 		end
-
 		return self.panel
 	end
 
@@ -218,37 +216,34 @@ do
 		button:SetText(name)
 		button:SetWidth(button:GetTextWidth()+8)
 
-		button.texture = CreateFrame('Button', button:GetName()..'Display', button)
-		button.texture:EnableMouse(false)
-		button.texture:SetNormalFontObject('GameFontNormal')
-		button.texture:SetHighlightFontObject('GameFontHighlight')
-		button.texture:SetAllPoints(button)
+		button.get = function() return parent.owner[get](parent.owner) end
+		button.set = function(...) return parent.owner[set](parent.owner, ...) end
+
+		button:SetHitRectInsets(0,-75,0,0)
+
+		button.preview = mediaButton:New(button)
+		button.preview:SetPoint("Left", button,"Right")
 
 		button:SetScript('OnClick', function()
 			self:Display(parent, button, mediaType, get, set)
 		end)
 
-		-- button:SetScript('OnShow', function()
-		-- 	local mtype = string.lower(mediaType)
-		-- 	local got = parent.owner[get]
-		--
-		-- 	print('set', mtype, LibSharedMedia:Fetch(mtype, got(parent.owner)), got(parent.owner))
-		-- 	button.texture:SetTexture(mtype, LibSharedMedia:Fetch(mtype, got(parent.owner)), got(parent.owner))
-		-- 	button.texture:SetWidth(abs(parent:GetWidth()-(button:GetWidth()))-5)
-		-- end)
-
+		 button:SetScript('OnShow', function()
+			button.preview:Set(string.lower(mediaType), function() return button.get() end)
+		 	button.preview:SetWidth(abs(parent:GetWidth()-(button:GetWidth()))-5) --don't like this here, but it glitches otherwise. ~Goranaws
+		end)
 
 		button:SetCheckedTexture(button:GetHighlightTexture():GetTexture())
 
-		local prev = parent.checkbutton
+		local prev = parent.checkbutton --I'd like to call it parent.button instead, everywhere. ~Goranaws
 		if prev then
-			button:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', 0, -0)
+			button:SetPoint('TOPLEFT', prev, 'BOTTOMLEFT', 0, -2)
 		else
-			button:SetPoint('TOPLEFT', 2, -5)
+			button:SetPoint('TOPLEFT', 2, -2)
 		end
 
 		parent.checkbutton = button
-		parent.height = parent.height + 24
+		parent.height = parent.height + 27
 	end
 
 	Addon.MediaPanel = Media
