@@ -19,15 +19,11 @@ local function check(source, target)
 	end
 	for key, value in pairs(source) do
 		if type(value) == "table" then
-			target[key] =check(value, target[key])
+			target[key] = check(value, target[key])
 		else
-			if (type(value) == "boolean") then
-				if target[key] == nil then
-					target[key] = value
-				end
- 			else
- 				target[key] = target[key] or value
- 			end
+			if (target[key] == nil) then
+				target[key] = value
+			end
 		end
 	end
 	return target
@@ -67,6 +63,7 @@ function CastBar:Create(...)
 	return bar
 end
 
+
 function CastBar:GetDefaults()
 	return {
 		point = 'CENTER',
@@ -84,12 +81,21 @@ function CastBar:GetDefaults()
 			b = 0,
 			a = 1
 		},
-		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+		background = {
+			name = "Blizzard Tooltip",
+			file = "Interface\\Tooltips\\UI-Tooltip-Background",
+		},
 		timeFormat = "Default",
 		alignText = "LEFT",
 		alignTime = "RIGHT",
-		texture = "Interface\\TargetingFrame\\UI-StatusBar",
-		font = "Friz Quadrata TT",
+		texture = {
+			name = "Blizzard",
+			file = "Interface\\TargetingFrame\\UI-StatusBar",
+		},
+		font = {
+			name = "Friz Quadrata TT",
+			file = "",
+		},
 		textcolor = {r = 1,g = 1,b = 1,a = 1},
 		hideDefault = true,
 	}
@@ -100,7 +106,7 @@ end
 	It's just an easy way for me to
 	tinker. ~Goranaws
 --]]
-local Version, checkSettings, requiresReset = 3.5, true, false
+local Version, checkSettings, requiresReset = 3.6, true, false
 
 function CastBar:CheckVersion()
 	if self.verified then
@@ -132,7 +138,7 @@ function CastBar:UpdateSize()
 	local pw, ph = self:GetPadding()
 	local w, h = self.sets.width, self.sets.height
 	self:SetSize(w + pw, h + ph)
-	self.skin:SetSize(w, h)
+	self.background:SetSize(w, h)
 	local offset = 0
 	if self.sets.showIcon then
 		offset = 19
@@ -143,7 +149,7 @@ function CastBar:UpdateSize()
 		point = "Left"
 	end
 	self.cast:ClearAllPoints()
-	self.cast:SetPoint(point, self.skin)
+	self.cast:SetPoint(point, self.background)
 end
 
 function CastBar:UpdateIcon()
@@ -154,7 +160,7 @@ function CastBar:UpdateIcon()
 			point = "Right"
 		end
 		self.cast.icon:ClearAllPoints()
-		self.cast.icon:SetPoint(point, self.skin)
+		self.cast.icon:SetPoint(point, self.background)
 	else
 		self.cast.icon:Hide()
 	end
@@ -169,13 +175,17 @@ function CastBar:UpdateBlizzard()
 end
 
 function CastBar:UpdateTextures()
-	self.skin:SetBackdrop({
-		bgFile = Lib and Lib:Fetch('background', self.sets.bgFile),
+	local b = self.sets.background
+
+	self.background:SetBackdrop({
+		bgFile = Lib and Lib:Fetch('background', b.name) or b.file,
 		insets = {left = -self.sets.inset, right = -self.sets.inset, top = -self.sets.inset, bottom = -self.sets.inset},
 		tile = false,
 	})
-	self.skin:SetBackdropColor(self.sets.color.r, self.sets.color.g, self.sets.color.b, self.sets.color.a)
-	local castTexture = (Lib and Lib:Fetch('statusbar', self.sets.texture)) or DEFAULT_STATUSBAR_TEXTURE
+	self.background:SetBackdropColor(self.sets.color.r, self.sets.color.g, self.sets.color.b, self.sets.color.a)
+
+	local t = self.sets.texture
+	local castTexture = Lib and Lib:Fetch('statusbar', t.name) or t.file or DEFAULT_STATUSBAR_TEXTURE
 	self.cast:SetStatusBarTexture(castTexture)
 end
 
@@ -213,7 +223,8 @@ function CastBar:UpdateText()
 	text:SetJustifyH(textAlign)
 	time:SetJustifyH(timeAlign)
 
-	local font = Lib:Fetch('font', self.sets.font)
+	local f = self.sets.font
+	local font = Lib and Lib:Fetch('font', f.name) or f.file
 	text:SetFont(font, 12)
 	time:SetFont(font, 12)
 
@@ -274,7 +285,6 @@ function CastBar:GetSpellcastStartAndEndTimes()
 end
 
 --[[ menu controls ]]--
-
 function CastBar:SetLeftToRight(isLeftToRight)
     local isRightToLeft = not isLeftToRight
     self.sets.isRightToLeft = isRightToLeft and true or nil
@@ -285,30 +295,33 @@ function CastBar:GetLeftToRight()
     return not self.sets.isRightToLeft
 end
 
-function CastBar:SetTexture(texture)
-	self.sets.texture = texture
+function CastBar:SetTexture(name)
+	self.sets.texture.name = name
+	self.sets.texture.file = Lib:Fetch('statusbar', name)
 	self:UpdateTextures()
 end
 
 function CastBar:GetBarTexture()
-	return self.sets.texture
+	return self.sets.texture.name
 end
 
-function CastBar:SetBackground(texture)
-	self.sets.bgFile = texture
+function CastBar:SetBackground(name)
+	self.sets.background.name = name
+	self.sets.background.file = Lib:Fetch('background', name)
 	self:UpdateTextures()
 end
 
 function CastBar:GetBackground()
-	return self.sets.bgFile
+	return self.sets.background.name
 end
 
 function CastBar:GetFont()
-	return self.sets.font
+	return self.sets.font.name
 end
 
-function CastBar:SetFont(font)
-	self.sets.font = font
+function CastBar:SetFont(name)
+	self.sets.font.name = name
+	self.sets.font.file = Lib:Fetch('Font', name)
 	self:Layout()
 end
 
