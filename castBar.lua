@@ -1,6 +1,3 @@
---[[
-	castBar.lua, by Goranaws
---]]
 local Addon = _G["Dominos"]
 local CastBar = Addon:CreateClass('Frame', Addon.Frame)
 local Lib = LibStub('LibSharedMedia-3.0', true)
