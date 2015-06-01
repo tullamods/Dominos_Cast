@@ -13,10 +13,26 @@ do
 		local button = self:Bind(CreateFrame('Button', nil, parent))
 
 		button:SetSize(WIDTH, HEIGHT)
-		button:EnableMouse(false)
 		button:SetNormalFontObject('GameFontNormal')
 		button:SetHighlightFontObject('GameFontHighlight')
 
+		button:SetScript("OnEnter", function(self)
+			self:GetFontString():SetTextColor(1,1,1,1)
+		end)
+
+		button:SetScript("OnLeave", function(self)
+			self:GetFontString():SetTextColor(1,1,0,1)
+		end)
+
+--for mouseover interaction, I had to make the mediaButton's clickable.
+--[[		button:SetScript("OnClick", function(self)
+			local panel = self:GetParent()
+			if panel:GetName() == "DominosMediaPanel" then
+				panel.set(button:GetText())
+				panel:Hide()
+			end
+		end)
+--]]
 		return button
 	end
 
@@ -40,7 +56,8 @@ do
 			if mType == 'font' then
 				string:SetFont(filePath, 12)
 				self:SetBackdrop(nil)
-			else
+			else	
+				local font = ""
 				string:SetFont(LibSharedMedia:Fetch('font', 'Friz Quadrata TT'), 12)
 			end
 			self:GetFontString():SetAllPoints(self)
@@ -97,8 +114,6 @@ do
 		scrollBar:SetPoint('TOPLEFT', scroll, 'TOPRIGHT', -6, -50)
 		scrollBar:SetPoint('BOTTOMLEFT', scroll, 'BOTTOMRIGHT', -6, 26)
 
-
-
 		scroll:SetScript('OnVerticalScroll', function(scroll, arg1)
 			FauxScrollFrame_OnVerticalScroll(scroll, arg1, HEIGHT + OFFSET, updatePanelList)
 		end)
@@ -115,10 +130,32 @@ do
 			scrollBar:SetValue(scrollBar:GetValue() - direction * (scrollBar:GetHeight()/2))
 			updatePanelList()
 		end)
-
+		scroll:EnableMouse(false)
+		
+		scroll:SetScript('OnEnter', function()
+			scroll:SetScript('OnUpdate', function()
+				for i, button in pairs(panel.buttons) do
+					if MouseIsOver(button) and button:IsShown() then
+						if not button.entered then
+							button.entered = true
+							button:GetScript("OnEnter")(button)
+						end
+					else
+						if button.entered then
+							button.entered = nil
+							button:GetScript("OnLeave")(button)
+						end
+					end
+				end
+			end)
+		end)
+		scroll:SetScript('OnLeave', function()
+			scroll:SetScript('OnUpdate', nil)
+		end)
+--Convenient, but the mediaButton's need mouseover interaction.
+-- [[
 		scroll:SetScript('OnMouseUp', function()
 			local buttons = panel.buttons
-
 			for i, button in pairs(panel.buttons) do
 				if MouseIsOver(button) and button:IsShown() then
 					if panel.set then
@@ -128,7 +165,8 @@ do
 				end
 			end
 		end)
-
+--]]
+		scroll:EnableMouse(true)
 		panel.scroll = scroll
 	end
 
@@ -210,6 +248,8 @@ do
 	end
 
 	function Media:NewMediaButton(parent, name, mediaType, get, set)
+		if not LibSharedMedia then return end --No Shared Media, no media button.
+	
 		local button = CreateFrame('CheckButton', ('%sMediaButton%s'):format(parent:GetName(), name), parent, 'UIMenuButtonStretchTemplate')
 
 		button:SetHeight(20)
@@ -223,7 +263,8 @@ do
 
 		button.preview = mediaButton:New(button)
 		button.preview:SetPoint("Left", button,"Right")
-
+		button.preview:EnableMouse(false)
+		
 		button:SetScript('OnClick', function()
 			self:Display(parent, button, mediaType, get, set)
 		end)
