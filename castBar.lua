@@ -14,7 +14,7 @@ end
 
 local function check(source, target)
 	--you may now add new defaults at will. ~Goranaws
-	if not target then
+	if (not target) or (type(target) ~= "table") then 
 		target = {}
 	end
 	for key, value in pairs(source) do
@@ -35,17 +35,14 @@ end
 
 function CastBar:Create(...)
 	local bar = CastBar.proto.Create(self, ...)
-
 	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar.header, "CastingBarFrameTemplate")
 	bar.cast:Hide()
 	bar.cast:SetPoint("Center")
 	bar.cast.unit = "player"
 	bar.cast:SetAttribute("unit", "player")
 	CastingBarFrame_SetLook(bar.cast, "UNITFRAME")
-
 	bar.cast.time = bar.cast:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
 	bar.cast.time:SetTextColor(1.0,1.0,1.0)
-
 	--background handler
 		--now doubles as an anchor
 		--for the castBar and Icon.
@@ -60,10 +57,8 @@ function CastBar:Create(...)
 	bar.cast.barFlash:SetVertexColor(0,1,0,1)
 	bar.cast.barFlash:SetBlendMode("ADD")
 	bar.cast.barFlash:SetAllPoints(bar.skin)
-
 	bar:LoadSettings()
 	bar:Layout()
-
 	return bar
 end
 
@@ -97,7 +92,7 @@ end
 
 --[[ version control
 	This can be removed if preferred.
-	It's just an easy way for me to
+	It's just an easy way for me to 
 	tinker. ~Goranaws
 --]]
 local Version, checkSettings, requiresReset = 3.5, true, false
@@ -139,7 +134,7 @@ function CastBar:UpdateSize()
 	end
 	self.cast:SetSize(w-offset, h)
 	local point = "Right"
-	if self.sets.isRightToLeft then
+	if self.sets.isRightToLeft then 
 		point = "Left"
 	end
 	self.cast:ClearAllPoints()
@@ -150,7 +145,7 @@ function CastBar:UpdateIcon()
 	if self.sets.showIcon then
 		self.cast.icon:Show()
 		local point = "Left"
-		if self.sets.isRightToLeft then
+		if self.sets.isRightToLeft then 
 			point = "Right"
 		end
 		self.cast.icon:ClearAllPoints()
@@ -190,12 +185,12 @@ function CastBar:UpdateText()
 	local timeAlign = self.sets.alignTime
 
 	if isLeftToRight then
-		time:SetPoint("Right", self.cast)
-		text:SetPoint("Left", self.cast)
+		time:SetPoint("Right", self.cast, -2, 0)
+		text:SetPoint("Left", self.cast, 2, 0)
 		text:SetPoint("Right", time, "Left")
 	else
-		time:SetPoint("Left", self.cast)
-		text:SetPoint("Right", self.cast)
+		time:SetPoint("Left", self.cast, 2, 0)
+		text:SetPoint("Right", self.cast, -2, 0)
 		text:SetPoint("Left", time, "Right")
 
 		if textAlign == "LEFT" then
@@ -230,10 +225,10 @@ function CastBar:UpdateText()
 
 	if (self.sets.hideTime == true) then
 		time:SetAlpha(0)
-		--time.hidden = true
+		time.hidden = true
 	else
 		time:SetAlpha(1)
-		--time.hidden = nil
+		time.hidden = nil
 	end
 end
 
@@ -273,8 +268,8 @@ function CastBar:GetSpellcastStartAndEndTimes()
 	end
 end
 
---[[ menu controls ]]--
 
+--[[ menu controls ]]--
 function CastBar:SetLeftToRight(isLeftToRight)
     local isRightToLeft = not isLeftToRight
     self.sets.isRightToLeft = isRightToLeft and true or nil
@@ -317,7 +312,7 @@ local function AddSlider(panel, name, key, min, max, step)
 	return panel:NewSlider(name, min, max, step,
 		function(self)
 			self:SetValue(panel.owner.sets[key] or min + ((max - min)/2))
-		end,
+		end, 
 		function(self, value)
 			panel.owner.sets[key] = value
 			panel.owner:Layout()
@@ -413,7 +408,7 @@ local function NewMenu(menu, name, key, table)
 	f.text:SetJustifyH('LEFT')
 	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	title:SetPoint("TopLeft", f.button, "TopRight", 4, -2)
-	title:SetText(name)
+	title:SetText(name)	
 	f:SetScript('OnShow', function(self)
 		if self ~= f then
 			return
@@ -450,7 +445,7 @@ local function NewMenu(menu, name, key, table)
 	local dropDownList = _G["DropDownList"..1]
 	dropDownList.dropdown = f
 	dropDownList.shouldRefresh = true
-
+	
 	local prev = menu.checkbutton
 	if prev then
 		f:SetPoint('TOP', prev, 'BOTTOM', 0, -0)
