@@ -9,6 +9,6 @@
 embeds.xml
 localization.xml
 mediaPanel.lua
-castBar.lua
+bar.lua
 menu.lua
 module.lua
