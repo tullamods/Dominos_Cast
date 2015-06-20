@@ -11,7 +11,7 @@ end
 
 local function check(source, target)
 	--you may now add new defaults at will. ~Goranaws
-	if (not target) or (type(target) ~= "table") then 
+	if (not target) or (type(target) ~= "table") then
 		target = {}
 	end
 	for key, value in pairs(source) do
@@ -22,9 +22,9 @@ local function check(source, target)
 				if target[key] == nil then
 					target[key] = value
 				end
- 			else
- 				target[key] = target[key] or value
- 			end
+			 else
+				 target[key] = target[key] or value
+			 end
 		end
 	end
 	return target
@@ -89,7 +89,7 @@ end
 
 --[[ version control
 	This can be removed if preferred.
-	It's just an easy way for me to 
+	It's just an easy way for me to
 	tinker. ~Goranaws
 --]]
 local Version, checkSettings, requiresReset = 3.5, true, false
@@ -131,7 +131,7 @@ function CastBar:UpdateSize()
 	end
 	self.cast:SetSize(w-offset, h)
 	local point = "Right"
-	if self.sets.isRightToLeft then 
+	if self.sets.isRightToLeft then
 		point = "Left"
 	end
 	self.cast:ClearAllPoints()
@@ -142,7 +142,7 @@ function CastBar:UpdateIcon()
 	if self.sets.showIcon then
 		self.cast.icon:Show()
 		local point = "Left"
-		if self.sets.isRightToLeft then 
+		if self.sets.isRightToLeft then
 			point = "Right"
 		end
 		self.cast.icon:ClearAllPoints()
@@ -268,13 +268,13 @@ end
 
 --[[ menu controls ]]--
 function CastBar:SetLeftToRight(isLeftToRight)
-    local isRightToLeft = not isLeftToRight
-    self.sets.isRightToLeft = isRightToLeft and true or nil
-    self:Layout()
+	local isRightToLeft = not isLeftToRight
+	self.sets.isRightToLeft = isRightToLeft and true or nil
+	self:Layout()
 end
 
 function CastBar:GetLeftToRight()
-    return not self.sets.isRightToLeft
+	return not self.sets.isRightToLeft
 end
 
 function CastBar:SetTexture(texture)
@@ -309,7 +309,7 @@ local function AddSlider(panel, name, key, min, max, step)
 	return panel:NewSlider(name, min, max, step,
 		function(self)
 			self:SetValue(panel.owner.sets[key] or min + ((max - min)/2))
-		end, 
+		end,
 		function(self, value)
 			panel.owner.sets[key] = value
 			panel.owner:Layout()
@@ -405,7 +405,7 @@ local function NewMenu(menu, name, key, table)
 	f.text:SetJustifyH('LEFT')
 	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	title:SetPoint("TopLeft", f.button, "TopRight", 4, -2)
-	title:SetText(name)	
+	title:SetText(name)
 	f:SetScript('OnShow', function(self)
 		if self ~= f then
 			return
@@ -442,7 +442,7 @@ local function NewMenu(menu, name, key, table)
 	local dropDownList = _G["DropDownList"..1]
 	dropDownList.dropdown = f
 	dropDownList.shouldRefresh = true
-	
+
 	local prev = menu.checkbutton
 	if prev then
 		f:SetPoint('TOP', prev, 'BOTTOM', 0, -0)
@@ -538,7 +538,7 @@ function CastBar:CreateMenu()
 		AddTexturePanel(menu)
 		AddTextPanel(menu)
 		AddStatePanel(menu)
-	 	AddAdvancedPanel(menu)
+		 AddAdvancedPanel(menu)
 		self.menu = menu
 	end
 end

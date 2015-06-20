@@ -56,7 +56,7 @@ do
 			if mType == 'font' then
 				string:SetFont(filePath, 12)
 				self:SetBackdrop(nil)
-			else	
+			else
 				local font = ""
 				string:SetFont(LibSharedMedia:Fetch('font', 'Friz Quadrata TT'), 12)
 			end
@@ -86,7 +86,7 @@ do
 		--add list buttons
 		panel:CreateButtons()
 		panel:SetSize(WIDTH+40, 50 + (NUM_ITEMS * HEIGHT))
-	
+
 		panel:SetScript('OnHide', function(self)
 			if self.holding then
 				self.holding:SetChecked(false)
@@ -131,7 +131,7 @@ do
 			updatePanelList()
 		end)
 		scroll:EnableMouse(false)
-		
+
 		scroll:SetScript('OnEnter', function()
 			scroll:SetScript('OnUpdate', function()
 				for i, button in pairs(panel.buttons) do
@@ -249,7 +249,7 @@ do
 
 	function Media:NewMediaButton(parent, name, mediaType, get, set)
 		if not LibSharedMedia then return end --No Shared Media, no media button.
-	
+
 		local button = CreateFrame('CheckButton', ('%sMediaButton%s'):format(parent:GetName(), name), parent, 'UIMenuButtonStretchTemplate')
 
 		button:SetHeight(20)
@@ -264,14 +264,14 @@ do
 		button.preview = mediaButton:New(button)
 		button.preview:SetPoint("Left", button,"Right")
 		button.preview:EnableMouse(false)
-		
+
 		button:SetScript('OnClick', function()
 			self:Display(parent, button, mediaType, get, set)
 		end)
 
 		 button:SetScript('OnShow', function()
 			button.preview:Set(string.lower(mediaType), function() return button.get() end)
-		 	button.preview:SetWidth(abs(parent:GetWidth()-(button:GetWidth()))-5) --don't like this here, but it glitches otherwise. ~Goranaws
+			 button.preview:SetWidth(abs(parent:GetWidth()-(button:GetWidth()))-5) --don't like this here, but it glitches otherwise. ~Goranaws
 		end)
 
 		button:SetCheckedTexture(button:GetHighlightTexture():GetTexture())
