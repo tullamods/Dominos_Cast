@@ -7,6 +7,8 @@
 ## OptionalDeps: LibSharedMedia-3.0
 ## Version: 3
 embeds.xml
-mediaPanel.lua
 localization.xml
+mediaPanel.lua
 castBar.lua
+menu.lua
+module.lua
