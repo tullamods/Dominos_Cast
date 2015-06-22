@@ -1,5 +1,5 @@
 local AddonName, Addon = ...
-local Dominos = _G["Dominos"]
+local Dominos = _G['Dominos']
 local LSM = LibStub('LibSharedMedia-3.0', true)
 
 local CastBar = Dominos:CreateClass('Frame', Dominos.Frame)
@@ -12,14 +12,14 @@ end
 
 local function check(source, target)
 	--you may now add new defaults at will. ~Goranaws
-	if (not target) or (type(target) ~= "table") then
+	if (not target) or (type(target) ~= 'table') then
 		target = {}
 	end
 	for key, value in pairs(source) do
-		if type(value) == "table" then
+		if type(value) == 'table' then
 			target[key] =check(value, target[key])
 		else
-			if (type(value) == "boolean") then
+			if (type(value) == 'boolean') then
 				if target[key] == nil then
 					target[key] = value
 				end
@@ -33,57 +33,72 @@ end
 
 function CastBar:Create(...)
 	local bar = CastBar.proto.Create(self, ...)
-	bar.cast = CreateFrame("StatusBar",  bar:GetName().."Bar", bar.header, "CastingBarFrameTemplate")
+
+	bar.cast = CreateFrame('StatusBar',  bar:GetName()..'Bar', bar.header, 'CastingBarFrameTemplate')
 	bar.cast:Hide()
-	bar.cast:SetPoint("Center")
-	bar.cast.unit = "player"
-	bar.cast:SetAttribute("unit", "player")
-	CastingBarFrame_SetLook(bar.cast, "UNITFRAME")
-	bar.cast.time = bar.cast:CreateFontString(nil, "OVERLAY", "TextStatusBarText")
-	bar.cast.time:SetTextColor(1.0,1.0,1.0)
-	--background handler
-		--now doubles as an anchor
-		--for the castBar and Icon.
-	bar.skin = CreateFrame("Frame", bar:GetName().."Skin", bar.cast)
-	bar.skin:SetFrameLevel(bar:GetFrameLevel()-1)
-	bar.skin:SetPoint("Center", bar)
-	bar.cast:HookScript("OnUpdate", bar.SetTime)
+	bar.cast:SetPoint('CENTER')
+	bar.cast.unit = 'player'
+	bar.cast:SetAttribute('unit', 'player')
+	CastingBarFrame_SetLook(bar.cast, 'UNITFRAME')
+	bar.cast:HookScript('OnUpdate', bar.SetTime)
+
+	bar.cast.time = bar.cast:CreateFontString(nil, 'OVERLAY', 'TextStatusBarText')
+	bar.cast.time:SetTextColor(1, 1, 1)
+
+	bar.skin = CreateFrame('Frame', bar:GetName() .. 'Skin', bar.cast)
+	bar.skin:SetFrameLevel(bar:GetFrameLevel() - 1)
+	bar.skin:SetPoint('CENTER', bar)
 
 	bar.cast.border:SetParent(MainMenuBarArtFrame)
 	bar.cast.borderShield:SetParent(MainMenuBarArtFrame)
-	bar.cast.barFlash:SetTexture("Interface\\Cooldown\\star4")
-	bar.cast.barFlash:SetVertexColor(0,1,0,1)
-	bar.cast.barFlash:SetBlendMode("ADD")
+
+	bar.cast.barFlash:SetTexture([[Interface\Cooldown\star4]])
+	bar.cast.barFlash:SetVertexColor(0, 1, 0, 1)
+	bar.cast.barFlash:SetBlendMode('ADD')
 	bar.cast.barFlash:SetAllPoints(bar.skin)
+
 	bar:LoadSettings()
 	bar:Layout()
+
 	return bar
 end
 
 function CastBar:GetDefaults()
 	return {
 		point = 'CENTER',
+
 		x = 0,
+
 		y = 30,
+
 		height = 19,
+
 		width = 200,
+
 		padding = 3,
+
 		hideText = false,
+
 		showIcon = true,
+
 		inset = 3,
-		color = {
-			r = 0,
-			g = 0,
-			b = 0,
-			a = 1
-		},
-		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-		timeFormat = "Default",
-		alignText = "LEFT",
-		alignTime = "RIGHT",
-		texture = "Interface\\TargetingFrame\\UI-StatusBar",
-		font = "Friz Quadrata TT",
-		textcolor = {r = 1,g = 1,b = 1,a = 1},
+
+		color = { r = 0, g = 0, b = 0, a = 1 },
+
+		bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],
+
+		timeFormat = 'Default',
+
+		alignText = 'LEFT',
+
+		alignTime = 'RIGHT',
+
+		texture = [[Interface\TargetingFrame\UI-StatusBar]],
+
+		font = 'Friz Quadrata TT',
+
+		textcolor = { r = 1,g = 1,b = 1,a = 1 },
+
 		hideDefault = true,
 	}
 end
@@ -128,10 +143,12 @@ function CastBar:UpdateSize()
 		offset = 19
 	end
 	self.cast:SetSize(w-offset, h)
-	local point = "Right"
+
+	local point = 'RIGHT'
 	if self.sets.isRightToLeft then
-		point = "Left"
+		point = 'LEFT'
 	end
+
 	self.cast:ClearAllPoints()
 	self.cast:SetPoint(point, self.skin)
 end
@@ -139,10 +156,12 @@ end
 function CastBar:UpdateIcon()
 	if self.sets.showIcon then
 		self.cast.icon:Show()
-		local point = "Left"
+
+		local point = 'LEFT'
 		if self.sets.isRightToLeft then
-			point = "Right"
+			point = 'RIGHT'
 		end
+
 		self.cast.icon:ClearAllPoints()
 		self.cast.icon:SetPoint(point, self.skin)
 	else
@@ -180,23 +199,23 @@ function CastBar:UpdateText()
 	local timeAlign = self.sets.alignTime
 
 	if isLeftToRight then
-		time:SetPoint("Right", self.cast, -2, 0)
-		text:SetPoint("Left", self.cast, 2, 0)
-		text:SetPoint("Right", time, "Left")
+		time:SetPoint('RIGHT', self.cast, -2, 0)
+		text:SetPoint('LEFT', self.cast, 2, 0)
+		text:SetPoint('RIGHT', time, 'LEFT')
 	else
-		time:SetPoint("Left", self.cast, 2, 0)
-		text:SetPoint("Right", self.cast, -2, 0)
-		text:SetPoint("Left", time, "Right")
+		time:SetPoint('LEFT', self.cast, 2, 0)
+		text:SetPoint('RIGHT', self.cast, -2, 0)
+		text:SetPoint('LEFT', time, 'RIGHT')
 
-		if textAlign == "LEFT" then
-			textAlign = "RIGHT"
-		elseif textAlign == "RIGHT" then
-			textAlign = "LEFT"
+		if textAlign == 'LEFT' then
+			textAlign = 'RIGHT'
+		elseif textAlign == 'RIGHT' then
+			textAlign = 'LEFT'
 		end
-		if timeAlign == "LEFT" then
-			timeAlign = "RIGHT"
-		elseif timeAlign == "RIGHT" then
-			timeAlign = "LEFT"
+		if timeAlign == 'LEFT' then
+			timeAlign = 'RIGHT'
+		elseif timeAlign == 'RIGHT' then
+			timeAlign = 'LEFT'
 		end
 	end
 
@@ -241,15 +260,15 @@ function CastBar:SetTime()
 		local style = sets.timeFormat
 		local text
 		local time = GetTime()
-		if style == "Default" then
-			text = string.format("%.1f", (endTime / 1000) - time)
-		elseif style == "Percent" then
-			text = string.format("%.0f", ((time - (startTime / 1000)) / ((endTime- startTime)/1000))*100).."%"
-		elseif style == "Fraction" then
-			text = string.format("%.1f", time - (startTime / 1000) ).."/"..string.format("%.1f", (endTime- startTime)/1000)
+		if style == 'Default' then
+			text = string.format('%.1f', (endTime / 1000) - time)
+		elseif style == 'Percent' then
+			text = string.format('%.0f', ((time - (startTime / 1000)) / ((endTime- startTime)/1000))*100)..'%'
+		elseif style == 'Fraction' then
+			text = string.format('%.1f', time - (startTime / 1000) )..'/'..string.format('%.1f', (endTime- startTime)/1000)
 		end
 
-		self.time:SetText(text or "")
+		self.time:SetText(text or '')
 	end
 end
 

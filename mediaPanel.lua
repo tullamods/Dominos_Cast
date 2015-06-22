@@ -1,13 +1,15 @@
 --[[
 	Needs rewrite for clarity. --in progess
 --]]
-local Addon = _G['Dominos']
-local AddonName = ...
+
+local AddonName, Addon = ...
+local Dominos = LibStub('AceAddon-3.0'):GetAddon('Dominos')
 local LibSharedMedia = LibStub('LibSharedMedia-3.0')
 local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 150, 20, 0
 
 --[[ buttons ]]--
-local mediaButton = Addon:CreateClass('Button')
+
+local mediaButton = Dominos:CreateClass('Button')
 do
 	function mediaButton:New(parent)
 		local button = self:Bind(CreateFrame('Button', nil, parent))
@@ -16,30 +18,23 @@ do
 		button:SetNormalFontObject('GameFontNormal')
 		button:SetHighlightFontObject('GameFontHighlight')
 
-		button:SetScript("OnEnter", function(self)
+		button:SetScript('OnEnter', function(self)
 			self:GetFontString():SetTextColor(1,1,1,1)
 		end)
 
-		button:SetScript("OnLeave", function(self)
+		button:SetScript('OnLeave', function(self)
 			self:GetFontString():SetTextColor(1,1,0,1)
 		end)
 
---for mouseover interaction, I had to make the mediaButton's clickable.
---[[		button:SetScript("OnClick", function(self)
-			local panel = self:GetParent()
-			if panel:GetName() == "DominosMediaPanel" then
-				panel.set(button:GetText())
-				panel:Hide()
-			end
-		end)
---]]
 		return button
 	end
 
-	function mediaButton:Set(mType, fileName)
-		local fileName = fileName()
-		self:SetText(fileName)
+	function mediaButton:Set(mType, getFileName)
+		local fileName = getFileName()
 		local filePath = LibSharedMedia:Fetch(mType, fileName)
+
+		self:SetText(fileName)
+
 		if mType == 'border' then
 			self:SetBackdrop({
 				edgeFile = filePath,
@@ -51,34 +46,38 @@ do
 				tile = false,
 			})
 		end
-		local string = self:GetFontString()
-		if string then
+
+		local fs = self:GetFontString()
+
+		if fs then
 			if mType == 'font' then
-				string:SetFont(filePath, 12)
+				fs:SetFont(filePath, 12)
 				self:SetBackdrop(nil)
 			else
-				local font = ""
-				string:SetFont(LibSharedMedia:Fetch('font', 'Friz Quadrata TT'), 12)
+				fs:SetFont(LibSharedMedia:Fetch('font', 'Friz Quadrata TT'), 12)
 			end
+
 			self:GetFontString():SetAllPoints(self)
 		end
+
 		self:Show()
 	end
 end
 
 --[[ panel ]]--
-local mediaPanel = Addon:CreateClass('Frame')
+
+local mediaPanel = Dominos:CreateClass('Frame')
 do
 	function mediaPanel:New(name)
 		local panel = self:Bind(CreateFrame('Frame', name, UIParent, 'TranslucentFrameTemplate'))
 
 		-- add close button
 		panel.close = CreateFrame('Button', panel:GetName() .. 'CloseButton', panel, 'UIPanelCloseButton')
-		panel.close:SetPoint('TopRight', -5, -5)
+		panel.close:SetPoint('TOPRIGHT', -5, -5)
 
 		-- add title text
 		panel.title = panel:CreateFontString(nil, 'OVERLAY', 'GameFontNormal')
-		panel.title:SetPoint('TopLeft', 15, -15)
+		panel.title:SetPoint('TOPLEFT', 15, -15)
 
 		-- add scroll area
 		panel:CreateScrollArea()
@@ -138,12 +137,12 @@ do
 					if MouseIsOver(button) and button:IsShown() then
 						if not button.entered then
 							button.entered = true
-							button:GetScript("OnEnter")(button)
+							button:GetScript('OnEnter')(button)
 						end
 					else
 						if button.entered then
 							button.entered = nil
-							button:GetScript("OnLeave")(button)
+							button:GetScript('OnLeave')(button)
 						end
 					end
 				end
@@ -229,7 +228,7 @@ do
 		panel:SetParent(anchor)
 		panel.title:SetText(mediaType)
 		panel:ClearAllPoints()
-		panel:SetPoint('TopLeft', anchor:GetParent(), 'TopRight')
+		panel:SetPoint('TOPLEFT', anchor:GetParent(), 'TOPRIGHT')
 		panel.mediatype = string.lower(mediaType)
 
 		panel.list = LibSharedMedia:List(panel.mediatype)
@@ -248,8 +247,6 @@ do
 	end
 
 	function Media:NewMediaButton(parent, name, mediaType, get, set)
-		if not LibSharedMedia then return end --No Shared Media, no media button.
-
 		local button = CreateFrame('CheckButton', ('%sMediaButton%s'):format(parent:GetName(), name), parent, 'UIMenuButtonStretchTemplate')
 
 		button:SetHeight(20)
@@ -262,7 +259,7 @@ do
 		button:SetHitRectInsets(0,-75,0,0)
 
 		button.preview = mediaButton:New(button)
-		button.preview:SetPoint("Left", button,"Right")
+		button.preview:SetPoint('LEFT', button,'RIGHT')
 		button.preview:EnableMouse(false)
 
 		button:SetScript('OnClick', function()
@@ -287,5 +284,5 @@ do
 		parent.height = parent.height + 27
 	end
 
-	Addon.MediaPanel = Media
+	Dominos.MediaPanel = Media
 end
