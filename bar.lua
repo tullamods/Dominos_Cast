@@ -1,8 +1,8 @@
-local AddonName, Addon = ...
-local Dominos = _G['Dominos']
+local AddonName = ...
+local Addon = LibStub('AceAddon-3.0'):GetAddon(GetAddOnDependencies(AddonName))
 local LSM = LibStub('LibSharedMedia-3.0', true)
 
-local CastBar = Dominos:CreateClass('Frame', Dominos.Frame)
+local CastBar = Addon:CreateClass('Frame', Addon.Frame)
 
 --[[ frame creation ]]--
 
@@ -103,29 +103,8 @@ function CastBar:GetDefaults()
 	}
 end
 
-local Version, checkSettings, requiresReset = 3.5, true, false
-
-function CastBar:CheckVersion()
-	if self.verified then
-	--	return
-	end
-
-	if ((not self.sets.version) or (self.sets.version ~= Version))then
-		if requiresReset then
-			wipe(self.sets)
-		end
-		self.sets.version = 3
-		if checkSettings then
-			self.sets = check(self:GetDefaults(), self.sets)
-		end
-		self.verified = true
-	end
-end
-
 --[[ update functions ]]--
-
 function CastBar:Layout()
-	self:CheckVersion()
 	self:UpdateIcon()
 	self:UpdateSize()
 	self:UpdateTextures()
