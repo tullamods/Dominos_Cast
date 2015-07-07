@@ -1,15 +1,11 @@
---[[
-	Needs rewrite for clarity. --in progess
---]]
-
-local AddonName, Addon = ...
-local Dominos = LibStub('AceAddon-3.0'):GetAddon('Dominos')
+local AddonName = ...
+local Addon = LibStub('AceAddon-3.0'):GetAddon(GetAddOnDependencies(AddonName))
 local LibSharedMedia = LibStub('LibSharedMedia-3.0')
 local NUM_ITEMS, WIDTH, HEIGHT, OFFSET = 8, 150, 20, 0
 
 --[[ buttons ]]--
 
-local mediaButton = Dominos:CreateClass('Button')
+local mediaButton = Addon:CreateClass('Button')
 do
 	function mediaButton:New(parent)
 		local button = self:Bind(CreateFrame('Button', nil, parent))
@@ -66,7 +62,7 @@ end
 
 --[[ panel ]]--
 
-local mediaPanel = Dominos:CreateClass('Frame')
+local mediaPanel = Addon:CreateClass('Frame')
 do
 	function mediaPanel:New(name)
 		local panel = self:Bind(CreateFrame('Frame', name, UIParent, 'TranslucentFrameTemplate'))
@@ -237,11 +233,13 @@ do
 
 		panel:UpdateList()
 		panel:Show()
+		
+		return panel
 	end
 
 	function Media:GetOrCreatePanel()
 		if not self.panel then
-			self.panel = mediaPanel:New('DominosMediaPanel')
+			self.panel = mediaPanel:New(GetAddOnDependencies(AddonName)..'MediaPanel')
 		end
 		return self.panel
 	end
@@ -282,7 +280,8 @@ do
 
 		parent.checkbutton = button
 		parent.height = parent.height + 27
+		return button
 	end
 
-	Dominos.MediaPanel = Media
+	Addon.MediaPanel = Media
 end
