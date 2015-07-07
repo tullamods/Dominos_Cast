@@ -1,13 +1,13 @@
-local AddonName, Addon = ...
-local Dominos = LibStub('AceAddon-3.0'):GetAddon('Dominos')
+local AddonName = ...
+local Addon = LibStub('AceAddon-3.0'):GetAddon(GetAddOnDependencies(AddonName))
 
-local CastBarModule = Dominos:NewModule('CastBar')
+local Module = Addon:NewModule('CastBar')
 
-function CastBarModule:Load()
+function Module:Load()
 	self.frame = Addon:NewCastBar()
 end
 
-function CastBarModule:Unload()
+function Module:Unload()
 	if self.frame then
 		self.frame:Free()
 		self.frame = nil
