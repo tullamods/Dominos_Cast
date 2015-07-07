@@ -5,7 +5,7 @@ Español
 --]]
 
 
-local L = LibStub('AceLocale-3.0'):NewLocale('Dominos-CastingBar', 'esES')
+local L = LibStub('AceLocale-3.0'):NewLocale(GetAddOnDependencies(...)..'CastingBar', 'esES')
 if not L then return end
 
 L.Texture = 'Textura'

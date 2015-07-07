@@ -15,7 +15,7 @@
 -- ô = \195\180
 -- û = \195\187
 
-local L = LibStub('AceLocale-3.0'):NewLocale('Dominos-CastingBar', 'frFR')
+local L = LibStub('AceLocale-3.0'):NewLocale(GetAddOnDependencies(...)..'CastingBar', 'frFR')
 if not L then return end
 
 L.Texture = 'Texture'
