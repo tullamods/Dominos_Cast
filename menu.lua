@@ -3,8 +3,8 @@
 		the right click menu for the cast bar
 --]]
 
-local AddonName, Addon = ...
-local Dominos = LibStub('AceAddon-3.0'):GetAddon('Dominos')
+local AddonName = ...
+local Addon = LibStub('AceAddon-3.0'):GetAddon(GetAddOnDependencies(AddonName))
 local LSM = LibStub('LibSharedMedia-3.0', true)
 local L
 
@@ -221,11 +221,11 @@ end
 local function AddTexturePanel(menu)
 	local panel = menu:NewPanel('Textures')
 
-	Dominos.MediaPanel:NewMediaButton(panel, 'Background', 'Background', 'GetBackground', 'SetBackground')
+	Addon.MediaPanel:NewMediaButton(panel, 'Background', 'Background', 'GetBackground', 'SetBackground')
 
 	NewColorPicker(panel, 'Color', 'color')
 
-	Dominos.MediaPanel:NewMediaButton(panel, 'Cast Bar', 'StatusBar', 'GetBarTexture', 'SetTexture')
+	Addon.MediaPanel:NewMediaButton(panel, 'Cast Bar', 'StatusBar', 'GetBarTexture', 'SetTexture')
 
 	AddSlider(panel, 'Background Inset', 'inset', -30, 100, 1)
 
@@ -243,7 +243,7 @@ local function AddTextPanel(menu)
 	NewMenu(panel, 'Align Text', 'alignText', {'LEFT', 'CENTER', 'RIGHT'})
 	NewColorPicker(panel, 'Color', 'textcolor')
 
-	Dominos.MediaPanel:NewMediaButton(panel, 'Font', 'Font', 'GetFont', 'SetFont')
+	Addon.MediaPanel:NewMediaButton(panel, 'Font', 'Font', 'GetFont', 'SetFont')
 
 	return panel
 end
@@ -301,10 +301,10 @@ end
 --[[ exports ]]--
 
 Addon.CreateMenu = function(self, owner)
-	local menu = Dominos:NewMenu(owner.id)
+	local menu = Addon:NewMenu(owner.id)
 
 	if menu then
-		L = LibStub('AceLocale-3.0'):GetLocale('Dominos-Config')
+		L = LibStub('AceLocale-3.0'):GetLocale(GetAddOnDependencies(AddonName)..'-Config')
 
 		AddLayoutPanel(menu)
 		AddTexturePanel(menu)
